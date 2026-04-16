@@ -2,42 +2,124 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Pacman Game</title>
-  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Points Challenge</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Behavioral Challenge Prototype</p>
+        <h1>The Points Challenge</h1>
+      </div>
+      <div id="playerBadge" class="player-badge hidden" aria-live="polite">
+        <span id="playerAvatarBadge" class="player-badge__avatar"></span>
+        <div>
+          <p class="player-badge__label">Current Player</p>
+          <p id="playerNameBadge" class="player-badge__name"></p>
+        </div>
+      </div>
+    </header>
 
-  <h1>Pacman Game</h1>
+    <main>
+      <section id="screen-onboarding" class="screen screen--active" aria-labelledby="welcomeTitle">
+        <div class="screen-grid">
+          <article class="hero-card">
+            <p class="hero-card__kicker">Welcome Screen</p>
+            <h2 id="welcomeTitle">Play smart. Follow the cues. Earn the highest score.</h2>
+            <p class="hero-card__copy">
+              You are entering a fast-moving points challenge built around decisions, timing,
+              and performance guidance. Complete recommended actions to maximize your score.
+            </p>
+            <ul class="hero-card__list">
+              <li>Pick up tasks and score points quickly.</li>
+              <li>Watch for system tips, rankings, and bonus prompts.</li>
+              <li>Build momentum before higher-pressure rounds begin.</li>
+            </ul>
+          </article>
 
-  <div id="hud">
-    <span>Score: <span id="score">0</span></span>
-    <span>Lives: <span id="lives">3</span></span>
-    <span>Time: <span id="timer">120</span>s</span>
+          <section class="setup-card" aria-labelledby="setupTitle">
+            <div class="section-heading">
+              <p class="section-heading__eyebrow">Player Setup</p>
+              <h3 id="setupTitle">Create your profile</h3>
+            </div>
+
+            <form id="onboardingForm" class="setup-form">
+              <label class="field">
+                <span>Nickname</span>
+                <input
+                  id="nicknameInput"
+                  name="nickname"
+                  type="text"
+                  maxlength="18"
+                  placeholder="Enter a nickname"
+                  autocomplete="nickname"
+                  required
+                />
+              </label>
+
+              <fieldset class="avatar-fieldset">
+                <legend>Choose an avatar</legend>
+                <div id="avatarOptions" class="avatar-grid"></div>
+              </fieldset>
+
+              <div class="setup-summary">
+                <p class="setup-summary__label">Selected profile</p>
+                <div class="setup-summary__card">
+                  <span id="selectedAvatarPreview" class="setup-summary__avatar">⚡</span>
+                  <div>
+                    <p id="selectedNamePreview" class="setup-summary__name">Player</p>
+                    <p class="setup-summary__meta">Ready for onboarding</p>
+                  </div>
+                </div>
+              </div>
+
+              <p class="form-note">
+                Your profile is stored locally in this browser so you can continue your run later.
+              </p>
+
+              <div class="setup-actions">
+                <button type="submit" class="button button--primary">Start Challenge</button>
+                <button type="button" id="resetProfileBtn" class="button button--secondary">
+                  Reset
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      </section>
+
+      <section id="screen-gameplay" class="screen hidden" aria-labelledby="gameplayTitle">
+        <div class="placeholder-card">
+          <p class="section-heading__eyebrow">Gameplay Placeholder</p>
+          <h2 id="gameplayTitle">Main Task Feed Goes Here</h2>
+          <p>
+            This screen is ready for the next teammate to implement task cards, timers,
+            recommendations, and leaderboard pressure.
+          </p>
+          <div class="placeholder-actions">
+            <button type="button" id="backToOnboardingBtn" class="button button--secondary">
+              Change Profile
+            </button>
+            <button type="button" id="clearProfileBtn" class="button button--ghost">
+              Clear Saved Profile
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section id="screen-outcome" class="screen hidden" aria-labelledby="outcomeTitle">
+        <div class="placeholder-card">
+          <p class="section-heading__eyebrow">Outcome Placeholder</p>
+          <h2 id="outcomeTitle">Score Summary Goes Here</h2>
+          <p>
+            This screen is reserved for the final score breakdown, comparisons, and behavior summary.
+          </p>
+        </div>
+      </section>
+    </main>
   </div>
-
-  <div id="leaderboard">
-    <h3>Leaderboard</h3>
-    <ul id="scoresList"></ul>
-  </div>
-
-  <!-- BOOST PANEL -->
-  <div id="boostPanel">
-    <h3>Boosts</h3>
-    <button onclick="openPopup('speed')">⚡ Speed Boost</button>
-    <button onclick="openPopup('lives')">❤️ Extra Lives</button>
-  </div>
-
-  <!-- POPUP -->
-  <div id="popup" class="hidden">
-    <div id="popupBox">
-      <h3 id="popupTitle"></h3>
-      <p id="popupText"></p>
-      <button id="closePopupBtn">Close</button>
-    </div>
-  </div>
-
-  <canvas id="gameCanvas"></canvas>
 
   <script src="script.js"></script>
 </body>

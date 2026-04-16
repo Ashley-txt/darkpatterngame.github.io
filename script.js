@@ -1,256 +1,191 @@
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+const STORAGE_KEY = "points-challenge-player";
 
-const tileSize = 22;
-
-/* ---------------- MAP ---------------- */
-const map = [
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-  [1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1],
-  [1,0,1,1,0,0,1,0,1,1,1,0,1,0,1,1,1,0,1],
-  [1,0,1,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,1],
-  [1,0,1,0,1,1,1,1,1,0,1,1,1,0,1,0,1,0,1],
-  [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,1],
-  [1,1,1,0,1,0,1,0,1,1,1,0,1,1,1,0,1,1,1],
-  [1,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,1],
-  [1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1],
-  [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,1],
-  [1,0,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,0,1],
-  [1,0,1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1],
-  [1,0,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,0,1],
-  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+const avatarChoices = [
+  { id: "spark", emoji: "⚡", name: "Spark" },
+  { id: "orbit", emoji: "🪐", name: "Orbit" },
+  { id: "pixel", emoji: "🟧", name: "Pixel" },
+  { id: "nova", emoji: "🌟", name: "Nova" },
+  { id: "pulse", emoji: "💠", name: "Pulse" },
+  { id: "echo", emoji: "🔷", name: "Echo" }
 ];
 
-canvas.width = map[0].length * tileSize;
-canvas.height = map.length * tileSize;
+const state = {
+  player: loadPlayer()
+};
 
-/* ---------------- STATE ---------------- */
-let score = 0;
-let lives = 3;
-let gameOver = false;
-let timeLeft = 120;
-
-/* ---------------- PLAYER ---------------- */
-let pacman = { x: 1, y: 1, dx: 0, dy: 0 };
-
-let ghosts = [
-  { x: 17, y: 1 },
-  { x: 17, y: 13 },
-  { x: 1, y: 13 }
-];
-
-/* ---------------- PELLETS ---------------- */
-let totalPellets = 0;
-map.forEach(r => r.forEach(c => {
-  if (c === 0) totalPellets++;
-}));
-
-/* ---------------- LEADERBOARD ---------------- */
-let leaderboard = [
-  { name: "Alex", score: 120 },
-  { name: "Jordan", score: 95 },
-  { name: "Sam", score: 80 },
-  { name: "You", score: 0 }
-];
-
-/* ---------------- POPUP (FIXED) ---------------- */
-const popup = document.getElementById("popup");
-const title = document.getElementById("popupTitle");
-const text = document.getElementById("popupText");
-const closeBtn = document.getElementById("closePopupBtn");
-
-function openPopup(type) {
-  popup.classList.remove("hidden");
-
-  if (type === "speed") {
-    title.textContent = "⚡ Speed Boost";
-    text.textContent = "Increases movement speed in-game.";
+const elements = {
+  onboardingForm: document.getElementById("onboardingForm"),
+  nicknameInput: document.getElementById("nicknameInput"),
+  avatarOptions: document.getElementById("avatarOptions"),
+  selectedAvatarPreview: document.getElementById("selectedAvatarPreview"),
+  selectedNamePreview: document.getElementById("selectedNamePreview"),
+  resetProfileBtn: document.getElementById("resetProfileBtn"),
+  backToOnboardingBtn: document.getElementById("backToOnboardingBtn"),
+  clearProfileBtn: document.getElementById("clearProfileBtn"),
+  playerBadge: document.getElementById("playerBadge"),
+  playerAvatarBadge: document.getElementById("playerAvatarBadge"),
+  playerNameBadge: document.getElementById("playerNameBadge"),
+  screens: {
+    onboarding: document.getElementById("screen-onboarding"),
+    gameplay: document.getElementById("screen-gameplay"),
+    outcome: document.getElementById("screen-outcome")
   }
+};
 
-  if (type === "lives") {
-    title.textContent = "❤️ Extra Lives";
-    text.textContent = "Adds extra chances when hit by ghosts.";
-  }
-}
+function loadPlayer() {
+  const fallback = {
+    nickname: "",
+    avatarId: avatarChoices[0].id
+  };
 
-function closePopup() {
-  popup.classList.add("hidden");
-}
-
-closeBtn.addEventListener("click", closePopup);
-
-/* ---------------- TIMER ---------------- */
-function updateTimer() {
-  const el = document.getElementById("timer");
-  el.textContent = timeLeft;
-
-  el.style.color = "white";
-
-  if (timeLeft <= 30) el.style.color = "orange";
-  if (timeLeft <= 10) el.style.color = "red";
-
-  if (timeLeft <= 0) {
-    gameOver = true;
-    alert("Time's up! Score: " + score);
-    location.reload();
-  }
-}
-
-/* ---------------- LEADERBOARD ---------------- */
-function updateLeaderboard() {
-  const list = document.getElementById("scoresList");
-
-  leaderboard = leaderboard.map(p => ({
-    ...p,
-    score: p.name === "You"
-      ? score
-      : p.score + Math.floor(Math.random() * 3)
-  }));
-
-  leaderboard.sort((a, b) => b.score - a.score);
-
-  list.innerHTML = "";
-
-  leaderboard.forEach((p, i) => {
-    const li = document.createElement("li");
-
-    if (p.name === "You") {
-      if (i === 0) li.style.color = "lime";
-      else if (i <= 1) li.style.color = "gold";
-      else li.style.color = "red";
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) {
+      return fallback;
     }
 
-    li.textContent = `${p.name}: ${p.score}`;
-    list.appendChild(li);
+    const parsed = JSON.parse(saved);
+    return {
+      nickname: typeof parsed.nickname === "string" ? parsed.nickname : "",
+      avatarId: avatarExists(parsed.avatarId) ? parsed.avatarId : fallback.avatarId
+    };
+  } catch (error) {
+    return fallback;
+  }
+}
+
+function savePlayer(player) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(player));
+}
+
+function avatarExists(avatarId) {
+  return avatarChoices.some((avatar) => avatar.id === avatarId);
+}
+
+function getAvatarById(avatarId) {
+  return avatarChoices.find((avatar) => avatar.id === avatarId) || avatarChoices[0];
+}
+
+function renderAvatarOptions() {
+  elements.avatarOptions.innerHTML = "";
+
+  avatarChoices.forEach((avatar) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "avatar-option";
+    button.dataset.avatarId = avatar.id;
+    button.setAttribute("aria-pressed", String(state.player.avatarId === avatar.id));
+    button.innerHTML = `
+      <span class="avatar-option__emoji" aria-hidden="true">${avatar.emoji}</span>
+      <span>
+        <span class="avatar-option__name">${avatar.name}</span>
+        <span class="avatar-option__hint">Profile icon</span>
+      </span>
+    `;
+
+    button.addEventListener("click", () => {
+      state.player.avatarId = avatar.id;
+      updateSelectedProfilePreview();
+      renderAvatarSelectionState();
+    });
+
+    elements.avatarOptions.appendChild(button);
   });
 }
 
-/* ---------------- HUD ---------------- */
-function updateHUD() {
-  document.getElementById("score").textContent = score;
-  document.getElementById("lives").textContent = lives;
-}
-
-/* ---------------- DRAW ---------------- */
-function drawMap() {
-  for (let y = 0; y < map.length; y++) {
-    for (let x = 0; x < map[y].length; x++) {
-      if (map[y][x] === 1) {
-        ctx.fillStyle = "blue";
-        ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
-      } else if (map[y][x] === 0) {
-        ctx.fillStyle = "white";
-        ctx.beginPath();
-        ctx.arc(x * tileSize + 11, y * tileSize + 11, 3, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-  }
-}
-
-function drawPacman() {
-  ctx.fillStyle = "yellow";
-  ctx.beginPath();
-  ctx.arc(pacman.x * tileSize + 11, pacman.y * tileSize + 11, 10, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-function drawGhosts() {
-  ctx.fillStyle = "red";
-  ghosts.forEach(g => {
-    ctx.fillRect(g.x * tileSize + 4, g.y * tileSize + 4, 14, 14);
+function renderAvatarSelectionState() {
+  const buttons = elements.avatarOptions.querySelectorAll(".avatar-option");
+  buttons.forEach((button) => {
+    const isSelected = button.dataset.avatarId === state.player.avatarId;
+    button.classList.toggle("is-selected", isSelected);
+    button.setAttribute("aria-pressed", String(isSelected));
   });
 }
 
-/* ---------------- GAME ---------------- */
-function movePacman() {
-  let nx = pacman.x + pacman.dx;
-  let ny = pacman.y + pacman.dy;
+function updateSelectedProfilePreview() {
+  const avatar = getAvatarById(state.player.avatarId);
+  const displayName = state.player.nickname.trim() || "Player";
 
-  if (map[ny][nx] !== 1) {
-    pacman.x = nx;
-    pacman.y = ny;
-
-    if (map[ny][nx] === 0) {
-      score++;
-      map[ny][nx] = 2;
-    }
-  }
+  elements.selectedAvatarPreview.textContent = avatar.emoji;
+  elements.selectedNamePreview.textContent = displayName;
 }
 
-function moveGhosts() {
-  ghosts.forEach(g => {
-    const dirs = [
-      { dx: 1, dy: 0 },
-      { dx: -1, dy: 0 },
-      { dx: 0, dy: 1 },
-      { dx: 0, dy: -1 }
-    ];
+function updatePlayerBadge() {
+  const hasProfile = state.player.nickname.trim().length > 0;
+  if (!hasProfile) {
+    elements.playerBadge.classList.add("hidden");
+    return;
+  }
 
-    const d = dirs[Math.floor(Math.random() * dirs.length)];
-    let nx = g.x + d.dx;
-    let ny = g.y + d.dy;
+  const avatar = getAvatarById(state.player.avatarId);
+  elements.playerAvatarBadge.textContent = avatar.emoji;
+  elements.playerNameBadge.textContent = state.player.nickname.trim();
+  elements.playerBadge.classList.remove("hidden");
+}
 
-    if (map[ny][nx] !== 1) {
-      g.x = nx;
-      g.y = ny;
-    }
+function showScreen(screenName) {
+  Object.entries(elements.screens).forEach(([name, screen]) => {
+    screen.classList.toggle("hidden", name !== screenName);
   });
 }
 
-function checkCollision() {
-  ghosts.forEach(g => {
-    if (g.x === pacman.x && g.y === pacman.y) {
-      lives--;
-      pacman.x = 1;
-      pacman.y = 1;
+function hydrateForm() {
+  elements.nicknameInput.value = state.player.nickname;
+  renderAvatarOptions();
+  renderAvatarSelectionState();
+  updateSelectedProfilePreview();
+  updatePlayerBadge();
 
-      if (lives <= 0) {
-        alert("Game Over!");
-        location.reload();
-      }
-    }
-  });
-}
-
-function checkWin() {
-  if (score === totalPellets) {
-    alert("YOU WIN!");
-    location.reload();
+  if (state.player.nickname.trim()) {
+    showScreen("gameplay");
+  } else {
+    showScreen("onboarding");
   }
 }
 
-/* ---------------- INPUT ---------------- */
-document.addEventListener("keydown", e => {
-  if (e.key === "ArrowUp") pacman = { ...pacman, dx: 0, dy: -1 };
-  if (e.key === "ArrowDown") pacman = { ...pacman, dx: 0, dy: 1 };
-  if (e.key === "ArrowLeft") pacman = { ...pacman, dx: -1, dy: 0 };
-  if (e.key === "ArrowRight") pacman = { ...pacman, dx: 1, dy: 0 };
-});
-
-/* ---------------- LOOP ---------------- */
-function gameLoop() {
-  if (gameOver) return;
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  movePacman();
-  moveGhosts();
-  checkCollision();
-  checkWin();
-
-  drawMap();
-  drawPacman();
-  drawGhosts();
-
-  updateHUD();
-  updateLeaderboard();
-  updateTimer();
+function handleNicknameInput(event) {
+  state.player.nickname = event.target.value;
+  updateSelectedProfilePreview();
 }
 
-setInterval(gameLoop, 160);
+function handleFormSubmit(event) {
+  event.preventDefault();
 
-setInterval(() => {
-  if (!gameOver) timeLeft--;
-}, 1000);
+  const trimmedNickname = elements.nicknameInput.value.trim();
+  if (!trimmedNickname) {
+    elements.nicknameInput.focus();
+    return;
+  }
+
+  state.player.nickname = trimmedNickname;
+  savePlayer(state.player);
+  updateSelectedProfilePreview();
+  updatePlayerBadge();
+  showScreen("gameplay");
+}
+
+function goToOnboarding() {
+  updateSelectedProfilePreview();
+  renderAvatarSelectionState();
+  showScreen("onboarding");
+  elements.nicknameInput.focus();
+}
+
+function resetProfile() {
+  localStorage.removeItem(STORAGE_KEY);
+  state.player = {
+    nickname: "",
+    avatarId: avatarChoices[0].id
+  };
+
+  hydrateForm();
+  elements.nicknameInput.focus();
+}
+
+elements.nicknameInput.addEventListener("input", handleNicknameInput);
+elements.onboardingForm.addEventListener("submit", handleFormSubmit);
+elements.resetProfileBtn.addEventListener("click", resetProfile);
+elements.backToOnboardingBtn.addEventListener("click", goToOnboarding);
+elements.clearProfileBtn.addEventListener("click", resetProfile);
+
+hydrateForm();
