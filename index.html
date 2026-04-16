@@ -6,8 +6,14 @@
   <title>Pacman Game</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
 
+<!-- MENU SCREEN -->
+<div id="menuScreen">
+  <h1>🎮 Pacman Game</h1>
+  <button onclick="startGame()">Start Game</button>
+ </div>
+
+ <body>
   <h1>Pacman Game</h1>
 
   <div id="hud">
@@ -35,6 +41,14 @@
       <p id="popupText"></p>
       <button id="closePopupBtn">Close</button>
     </div>
+  </div>
+  <div id="pauseScreen" class="hidden">
+     <h1>⏸ Paused</h1>
+     <button onclick="resumeGame()">Resume</button>
+  </div>
+  <div id="gameOverScreen" class="hidden">
+    <h1>💀 Game Over</h1>
+    <button onclick="restartGame()">Restart</button>
   </div>
 
   <canvas id="gameCanvas"></canvas>
