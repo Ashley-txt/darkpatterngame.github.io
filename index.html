@@ -7,13 +7,13 @@
   <link rel="stylesheet" href="style.css">
 </head>
 
-<!-- MENU SCREEN -->
-<div id="menuScreen">
-  <h1>🎮 Pacman Game</h1>
-  <button onclick="startGame()">Start Game</button>
- </div>
-
  <body>
+  <!-- MENU SCREEN -->
+  <div id="menuScreen">
+    <h1>🎮 Pacman Game</h1>
+    <button onclick="startGame()">Start Game</button>
+  </div>
+
   <h1>Pacman Game</h1>
 
   <div id="hud">
@@ -45,12 +45,13 @@
   <div id="pauseScreen" class="hidden">
      <h1>⏸ Paused</h1>
      <button onclick="resumeGame()">Resume</button>
+     <button onclick="restartGame()">"Exit"</button>
   </div>
   <div id="gameOverScreen" class="hidden">
     <h1>💀 Game Over</h1>
     <button onclick="restartGame()">Restart</button>
   </div>
-
+  
   <canvas id="gameCanvas"></canvas>
 
   <script src="script.js"></script>

@@ -25,10 +25,12 @@ const map = [
 canvas.width = map[0].length * tileSize;
 canvas.height = map.length * tileSize;
 
+let gameState = "menu"; 
+const menuScreen = document.getElementById("menuScreen");
 /* ---------------- STATE ---------------- */
 let score = 0;
 let lives = 3;
-let gameOver = false;
+gameState = "gameover";
 let timeLeft = 120;
 
 /* ---------------- PLAYER ---------------- */
@@ -266,23 +268,25 @@ function gameLoop() {
 }
 
 setInterval(gameLoop, 160);
-
+  
 setInterval(() => {
   if (gameState === "playing") timeLeft--;
 }, 1000);
 
 // menu controls
-let gameState = "menu"; 
-const menuScreen = document.getElementById("menuScreen");
 
 function startGame() {
   gameState = "playing";
   menuScreen.classList.add("hidden");
 }
-function endGame() {
+window.endGame = function () {
   gameState = "gameover";
   gameOverScreen.classList.remove("hidden");
-}
+};
 function restartGame() {
   location.reload();
 }
+window.resumeGame = function () {
+  gameState = "playing";
+  pauseScreen.classList.add("hidden");
+};
