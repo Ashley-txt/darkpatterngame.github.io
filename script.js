@@ -221,8 +221,24 @@ function checkWin() {
   }
 }
 
+const pauseScreen = document.getElementById("pauseScreen");
+const gameOverScreen = document.getElementById("gameOverScreen");
 /* ---------------- INPUT ---------------- */
 document.addEventListener("keydown", e => {
+  //when escape is pressed game will enter a pause state -darren
+  if (e.key === "Escape") {
+    if (gameState === "playing") {
+      gameState = "paused";
+      pauseScreen.classList.remove("hidden");
+    } else if (gameState === "paused") {
+      gameState = "playing";
+      pauseScreen.classList.add("hidden");
+    }
+    return;
+  }
+
+  if (gameState !== "playing") return;
+
   if (e.key === "ArrowUp") pacman = { ...pacman, dx: 0, dy: -1 };
   if (e.key === "ArrowDown") pacman = { ...pacman, dx: 0, dy: 1 };
   if (e.key === "ArrowLeft") pacman = { ...pacman, dx: -1, dy: 0 };
@@ -231,7 +247,7 @@ document.addEventListener("keydown", e => {
 
 /* ---------------- LOOP ---------------- */
 function gameLoop() {
-  if (gameOver) return;
+  if (gameState !== "playing") return;
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -252,5 +268,21 @@ function gameLoop() {
 setInterval(gameLoop, 160);
 
 setInterval(() => {
-  if (!gameOver) timeLeft--;
+  if (gameState === "playing") timeLeft--;
 }, 1000);
+
+// menu controls
+let gameState = "menu"; 
+const menuScreen = document.getElementById("menuScreen");
+
+function startGame() {
+  gameState = "playing";
+  menuScreen.classList.add("hidden");
+}
+function endGame() {
+  gameState = "gameover";
+  gameOverScreen.classList.remove("hidden");
+}
+function restartGame() {
+  location.reload();
+}
