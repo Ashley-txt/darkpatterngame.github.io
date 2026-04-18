@@ -42,14 +42,22 @@
       <button id="closePopupBtn">Close</button>
     </div>
   </div>
+
+  <!-- PAUSE & GAME OVER SCREENS -->
   <div id="pauseScreen" class="hidden">
      <h1>⏸ Paused</h1>
-     <button onclick="resumeGame()">Resume</button>
-     <button onclick="restartGame()">"Exit"</button>
+     <button id="resumeBtn" onclick="resumeGame()">Continue</button>
+     <button id="exitBtn" onclick="restartGame()">Exit</button>
+     <div id="adContainer">
+      <button id="removeAdsBtn" onclick="RemoveAds()">Remove Ads</button>
+      <img id="adImage1" src="adsidebar.jpg" alt="Ad Image">
+      <img id="adImage3" src="lowbar.ad.jpg" alt="Ad Image">
+      <img id="adImage2" src="adsidebar2.jpg" alt="Ad Image">
+     </div>
   </div>
   <div id="gameOverScreen" class="hidden">
     <h1>💀 Game Over</h1>
-    <button onclick="restartGame()">Restart</button>
+    <button id="restartBtn" onclick="restartGame()">Restart</button>
   </div>
   
   <canvas id="gameCanvas"></canvas>

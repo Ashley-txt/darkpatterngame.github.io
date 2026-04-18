@@ -290,3 +290,8 @@ window.resumeGame = function () {
   gameState = "playing";
   pauseScreen.classList.add("hidden");
 };
+
+//removeAds button
+function RemoveAds() {
+  document.getElementById("adContainer").style.display = "none";
+}
