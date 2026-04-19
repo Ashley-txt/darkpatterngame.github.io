@@ -131,7 +131,7 @@ let leaderboard = [
   { name: "Alex",   score: 120 },
   { name: "Jordan", score: 95  },
   { name: "Sam",    score: 80  },
-  { name: "You",    score: 0   }
+  { name: "LAST PLACE YOU:",    score: 0   }
 ];
 
 /* ---------------- POPUP ---------------- */
@@ -173,18 +173,28 @@ function updateLeaderboard() {
   const list = document.getElementById("scoresList");
   leaderboard = leaderboard.map(p => ({
     ...p,
-    score: p.name === "You"
+    score: p.name === "LAST PLACE YOU:"
       ? score
       : p.score + Math.floor(Math.random() * 3)
   }));
   leaderboard.sort((a, b) => b.score - a.score);
   list.innerHTML = "";
+  const rankSymbols = ["①", "②", "③", "④"];
   leaderboard.forEach((p, i) => {
     const li = document.createElement("li");
-    if (p.name === "You") {
-      li.style.color = i === 0 ? "lime" : i <= 1 ? "gold" : "red";
+    li.setAttribute("data-rank", rankSymbols[i] || `${i+1}.`);
+    if (p.name === "LAST PLACE YOU:") {
+      li.classList.add("you-row");
     }
-    li.textContent = `${p.name}: ${p.score}`;
+    const nameSpan = document.createElement("span");
+    nameSpan.textContent = p.name;
+    nameSpan.style.flex = "1";
+    nameSpan.style.textAlign = "left";
+    nameSpan.style.marginRight = "6px";
+    const scoreSpan = document.createElement("span");
+    scoreSpan.textContent = String(p.score).padStart(4, "0");
+    li.appendChild(nameSpan);
+    li.appendChild(scoreSpan);
     list.appendChild(li);
   });
 }
