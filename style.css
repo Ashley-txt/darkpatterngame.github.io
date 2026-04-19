@@ -118,7 +118,7 @@ canvas {
 
   font-size: 2rem;
   z-index: 9999;
-  overflow: hidden;
+  overflow: visible;
 }
 /* AD LOCATIONS */
 #adContainer {
