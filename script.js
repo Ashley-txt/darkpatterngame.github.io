@@ -447,7 +447,8 @@ window.purchaseTime = function () {
 };
 
 /* ---------------- INPUT ---------------- */
-document.addEventListener("keydown", e => {
+ddocument.addEventListener("keydown", e => {
+  console.log("key pressed:", e.key, "gameState:", gameState);
   if (e.key === "Escape") {
     const adContainer = document.getElementById("adContainer");
     if (gameState === "playing") {
