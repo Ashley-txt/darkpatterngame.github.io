@@ -136,6 +136,10 @@ canvas {
 #adContainer button {
   pointer-events: all;
 }
+#adContainer img {
+  overflow: visible !important;
+  object-fit: fill;
+}
 #pauseScreen button {
   padding: 14px 28px;
   margin: 10px;
