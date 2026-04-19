@@ -453,8 +453,6 @@ document.addEventListener("keydown", e => {
     if (gameState === "playing") {
       gameState = "paused";
       pauseScreen.classList.remove("hidden");
-      adContainer.removeAttribute("class");
-      adContainer.style.cssText = "display:block !important; position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:10000; pointer-events:none;";
       createAds();
   } else if (gameState === "paused") {
       gameState = "playing";
