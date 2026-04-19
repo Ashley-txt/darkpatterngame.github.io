@@ -524,25 +524,36 @@ window.resumeGame = function () {
 };
 
 function createAds() {
-  const adContainer = document.getElementById("adContainer");
-  adContainer.innerHTML = `<button id="removeAdsBtn" onclick="RemoveAds()" style="position:fixed; top:10px; left:50%; transform:translateX(-50%); z-index:999999; background:linear-gradient(45deg,#f1c40f,#f39c12); color:black; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:bold;">Remove Ads</button>`;
+  // Remove any existing ads first
+  document.querySelectorAll(".gameAd").forEach(el => el.remove());
+
+  const btn = document.createElement("button");
+  btn.id = "removeAdsBtn";
+  btn.className = "gameAd";
+  btn.onclick = RemoveAds;
+  btn.style.cssText = "position:fixed; top:10px; left:50%; transform:translateX(-50%); z-index:999999; background:linear-gradient(45deg,#f1c40f,#f39c12); color:black; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:bold;";
+  btn.textContent = "Remove Ads";
+  document.body.appendChild(btn);
 
   const ad1 = new Image();
+  ad1.className = "gameAd";
   ad1.src = "adsidebar.jpg";
   ad1.style.cssText = "position:fixed; left:0; top:0; width:160px; height:100vh; z-index:99999;";
-  adContainer.appendChild(ad1);
+  document.body.appendChild(ad1);
 
   const ad2 = new Image();
+  ad2.className = "gameAd";
   ad2.src = "adsidebar2.jpg";
   ad2.style.cssText = "position:fixed; right:0; top:0; width:160px; height:100vh; z-index:99999;";
-  adContainer.appendChild(ad2);
+  document.body.appendChild(ad2);
 
   const ad3 = new Image();
+  ad3.className = "gameAd";
   ad3.src = "lowbar.ad.jpg";
   ad3.style.cssText = "position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:60%; max-width:600px; height:120px; z-index:99999;";
-  adContainer.appendChild(ad3);
+  document.body.appendChild(ad3);
 }
 
 function RemoveAds() {
-  document.getElementById("adContainer").style.display = "none";
+  document.querySelectorAll(".gameAd").forEach(el => el.remove());
 }
