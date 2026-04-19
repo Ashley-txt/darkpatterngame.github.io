@@ -517,6 +517,7 @@ window.endGame = function () {
 window.resumeGame = function () {
   gameState = "playing";
   pauseScreen.classList.add("hidden");
+  document.getElementById("adContainer").classList.add("hidden");
 };
 
 function RemoveAds() {

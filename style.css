@@ -121,38 +121,6 @@ canvas {
   overflow: hidden;
 }
 /* AD LOCATIONS */
-#adImage1{
-  background-color: gray;
-  background-size: cover;
-  width: 200px;
-  height: 800px;
-  margin: 10px;
-  position: absolute;
-  left: 0;
-  top: 0;
-}
-#adImage2{
-  background-color: gray;
-  background-size: cover;
-  width: 200px;
-  height: 800px;
-  margin: 10px;
-  position: absolute;
-  right: 0;
-  top: 0;
-}
-#adImage3 {
-  background-color: gray;
-  background-size: cover;
-  width: 90%;           
-  max-width: 600px;    
-  height: 200px;
-  position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1000;        
-}
 #adContainer {
   position: fixed;
   top: 0;
@@ -162,7 +130,9 @@ canvas {
   pointer-events: none;
   z-index: 10000;
 }
-
+#adContainer:not(.hidden) {
+  display: block !important;
+}
 #adContainer button {
   pointer-events: all;
 }
