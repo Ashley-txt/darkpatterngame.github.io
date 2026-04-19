@@ -522,6 +522,7 @@ window.resumeGame = function () {
 };
 
 function createAds() {
+  console.log("createAds called!");
   // Remove any existing ads first
   document.querySelectorAll(".gameAd").forEach(el => el.remove());
 
