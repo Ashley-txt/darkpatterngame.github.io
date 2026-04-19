@@ -245,16 +245,69 @@ function movePacman() {
   }
 }
 
+function bfsNextStep(ghost, target) {
+  // Returns the first step a ghost should take toward target using BFS
+  const queue = [{ x: ghost.x, y: ghost.y, path: [] }];
+  const visited = new Set();
+  visited.add(`${ghost.x},${ghost.y}`);
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+
+    const dirs = [
+      { dx: 1, dy: 0 }, { dx: -1, dy: 0 },
+      { dx: 0, dy: 1 }, { dx: 0, dy: -1 }
+    ];
+
+    for (const d of dirs) {
+      const nx = current.x + d.dx;
+      const ny = current.y + d.dy;
+      const key = `${nx},${ny}`;
+
+      if (map[ny]?.[nx] === undefined) continue;  // out of bounds
+      if (map[ny][nx] === 1) continue;             // wall
+      if (visited.has(key)) continue;              // already seen
+
+      const newPath = [...current.path, { x: nx, y: ny }];
+
+      // Found Pac-Man — return the first step of the path
+      if (nx === target.x && ny === target.y) {
+        return newPath[0] || { x: ghost.x, y: ghost.y };
+      }
+
+      visited.add(key);
+      queue.push({ x: nx, y: ny, path: newPath });
+    }
+  }
+
+  // No path found — stay put
+  return { x: ghost.x, y: ghost.y };
+}
+
 function moveGhosts() {
-  const dirs = [
-    { dx: 1, dy: 0 }, { dx: -1, dy: 0 },
-    { dx: 0, dy: 1 }, { dx: 0, dy: -1 }
-  ];
   ghosts.forEach(g => {
-    const d  = dirs[Math.floor(Math.random() * dirs.length)];
-    const nx = g.x + d.dx;
-    const ny = g.y + d.dy;
-    if (map[ny][nx] !== 1) { g.x = nx; g.y = ny; }
+    // Level 4 ghosts chase perfectly — earlier levels have some randomness
+    const chaseChance = currentLevel === 3 ? 1.0   // level 4: always chase
+                      : currentLevel === 2 ? 0.80  // level 3: 80% chase
+                      : currentLevel === 1 ? 0.60  // level 2: 60% chase
+                      : 0.40;                       // level 1: 40% chase
+
+    if (Math.random() < chaseChance) {
+      // BFS toward Pac-Man
+      const next = bfsNextStep(g, pacman);
+      g.x = next.x;
+      g.y = next.y;
+    } else {
+      // Random move as fallback
+      const dirs = [
+        { dx: 1, dy: 0 }, { dx: -1, dy: 0 },
+        { dx: 0, dy: 1 }, { dx: 0, dy: -1 }
+      ];
+      const d = dirs[Math.floor(Math.random() * dirs.length)];
+      const nx = g.x + d.dx;
+      const ny = g.y + d.dy;
+      if (map[ny][nx] !== 1) { g.x = nx; g.y = ny; }
+    }
   });
 }
 
