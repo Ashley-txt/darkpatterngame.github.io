@@ -454,6 +454,7 @@ document.addEventListener("keydown", e => {
       gameState = "paused";
       pauseScreen.classList.remove("hidden");
       adContainer.classList.remove("hidden");
+      adContainer.style.display = "";
     } else if (gameState === "paused") {
       gameState = "playing";
       pauseScreen.classList.add("hidden");
@@ -502,6 +503,7 @@ function startGame() {
   currentLevel = 0;
   score = 0;
   lives = 3;
+  document.getElementById("adContainer").style.display = "";
   loadLevel(0);                 // NEW — initialize level 1
 }
 
