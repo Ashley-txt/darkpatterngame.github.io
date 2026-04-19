@@ -449,12 +449,15 @@ window.purchaseTime = function () {
 /* ---------------- INPUT ---------------- */
 document.addEventListener("keydown", e => {
   if (e.key === "Escape") {
+    const adContainer = document.getElementById("adContainer");
     if (gameState === "playing") {
       gameState = "paused";
       pauseScreen.classList.remove("hidden");
+      adContainer.classList.remove("hidden");
     } else if (gameState === "paused") {
       gameState = "playing";
       pauseScreen.classList.add("hidden");
+      adContainer.classList.add("hidden");
     }
     return;
   }
