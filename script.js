@@ -1,23 +1,9 @@
-// ============================================================
-// game-levels.js  —  branch: levels-feature
-// Drop this file alongside your existing index.html and replace
-// the <script src="game.js"> tag with <script src="game-levels.js">
-//
-// Changes vs. original:
-//   • 4-level progression (ghost count + speed vary per level)
-//   • loadLevel(n) resets map/ghosts/timer without a full reload
-//   • Win → advances to next level; after level 4 → true win screen
-//   • Dark-pattern purchase flow preserved (lives & time purchases)
-//   • All original functions kept; additions clearly marked NEW
-// ============================================================
-
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
 const tileSize = 22;
 
 /* ---------------- MAP TEMPLATE ---------------- */
-// Stored as a template so we can reset it each level
 const MAP_TEMPLATE = [
   [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
   [1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1],
@@ -36,7 +22,6 @@ const MAP_TEMPLATE = [
   [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
 ];
 
-// Deep-copy helper so each level gets a fresh map
 function freshMap() {
   return MAP_TEMPLATE.map(row => [...row]);
 }
@@ -46,16 +31,9 @@ let map = freshMap();
 canvas.width  = map[0].length * tileSize;
 canvas.height = map.length    * tileSize;
 
-/* ----------------------------------------------------------------
-   NEW — LEVEL CONFIG
-   Each entry describes one level:
-     ghosts   : starting positions (determines ghost count)
-     ghostInterval : ms between ghost moves (lower = faster)
-     timeLimit: seconds on the clock
----------------------------------------------------------------- */
+/* ---------------- LEVEL CONFIG ---------------- */
 const LEVEL_CONFIG = [
   {
-    // Level 1 — 2 ghosts, normal speed
     ghosts: [
       { x: 17, y: 1  },
       { x: 17, y: 13 },
@@ -65,7 +43,6 @@ const LEVEL_CONFIG = [
     label: "Level 1"
   },
   {
-    // Level 2 — 3 ghosts, normal speed
     ghosts: [
       { x: 17, y: 1  },
       { x: 17, y: 13 },
@@ -76,7 +53,6 @@ const LEVEL_CONFIG = [
     label: "Level 2"
   },
   {
-    // Level 3 — 4 ghosts, normal speed
     ghosts: [
       { x: 17, y: 1  },
       { x: 17, y: 13 },
@@ -88,14 +64,13 @@ const LEVEL_CONFIG = [
     label: "Level 3"
   },
   {
-    // Level 4 — 4 ghosts, FASTER (ghostInterval halved)
     ghosts: [
       { x: 17, y: 1  },
       { x: 17, y: 13 },
       { x: 1,  y: 13 },
       { x: 9,  y: 7  },
     ],
-    ghostInterval: 200,   // twice as fast as normal
+    ghostInterval: 200,
     timeLimit: 90,
     label: "Level 4 — Speed Run!"
   },
@@ -106,19 +81,19 @@ let gameState    = "menu";
 let score        = 0;
 let lives        = 3;
 let timeLeft     = LEVEL_CONFIG[0].timeLimit;
-let currentLevel = 0;   // NEW — 0-indexed into LEVEL_CONFIG
+let currentLevel = 0;
 let ghosts       = [];
-let ghostMoveInterval = null;   // NEW — handle to the ghost-move timer
+let ghostMoveInterval = null;
 let pelletsEatenThisLevel = 0;
 
-const menuScreen    = document.getElementById("menuScreen");
-const pauseScreen   = document.getElementById("pauseScreen");
+const menuScreen     = document.getElementById("menuScreen");
+const pauseScreen    = document.getElementById("pauseScreen");
 const gameOverScreen = document.getElementById("gameOverScreen");
 
 /* ---------------- PLAYER ---------------- */
 let pacman = { x: 1, y: 1, dx: 0, dy: 0 };
 
-/* ---------------- PELLET COUNT (recalculated per level) ---------------- */
+/* ---------------- PELLETS ---------------- */
 let totalPellets = 0;
 function countPellets() {
   totalPellets = 0;
@@ -157,8 +132,8 @@ closeBtn.addEventListener("click", closePopup);
 /* ---------------- TIMER ---------------- */
 function updateTimer() {
   const el = document.getElementById("timer");
-  el.textContent  = timeLeft;
-  el.style.color  = "white";
+  el.textContent = timeLeft;
+  el.style.color = "white";
   if (timeLeft <= 30) el.style.color = "orange";
   if (timeLeft <= 10) el.style.color = "red";
 
@@ -193,8 +168,6 @@ function updateLeaderboard() {
 function updateHUD() {
   document.getElementById("score").textContent = score;
   document.getElementById("lives").textContent = lives;
-
-  // NEW — show current level label if element exists
   const lvlEl = document.getElementById("levelLabel");
   if (lvlEl) lvlEl.textContent = LEVEL_CONFIG[currentLevel].label;
 }
@@ -245,69 +218,16 @@ function movePacman() {
   }
 }
 
-function bfsNextStep(ghost, target) {
-  // Returns the first step a ghost should take toward target using BFS
-  const queue = [{ x: ghost.x, y: ghost.y, path: [] }];
-  const visited = new Set();
-  visited.add(`${ghost.x},${ghost.y}`);
-
-  while (queue.length > 0) {
-    const current = queue.shift();
-
-    const dirs = [
-      { dx: 1, dy: 0 }, { dx: -1, dy: 0 },
-      { dx: 0, dy: 1 }, { dx: 0, dy: -1 }
-    ];
-
-    for (const d of dirs) {
-      const nx = current.x + d.dx;
-      const ny = current.y + d.dy;
-      const key = `${nx},${ny}`;
-
-      if (map[ny]?.[nx] === undefined) continue;  // out of bounds
-      if (map[ny][nx] === 1) continue;             // wall
-      if (visited.has(key)) continue;              // already seen
-
-      const newPath = [...current.path, { x: nx, y: ny }];
-
-      // Found Pac-Man — return the first step of the path
-      if (nx === target.x && ny === target.y) {
-        return newPath[0] || { x: ghost.x, y: ghost.y };
-      }
-
-      visited.add(key);
-      queue.push({ x: nx, y: ny, path: newPath });
-    }
-  }
-
-  // No path found — stay put
-  return { x: ghost.x, y: ghost.y };
-}
-
 function moveGhosts() {
+  const dirs = [
+    { dx: 1, dy: 0 }, { dx: -1, dy: 0 },
+    { dx: 0, dy: 1 }, { dx: 0, dy: -1 }
+  ];
   ghosts.forEach(g => {
-    // Level 4 ghosts chase perfectly — earlier levels have some randomness
-    const chaseChance = currentLevel === 3 ? 1.0   // level 4: always chase
-                      : currentLevel === 2 ? 0.80  // level 3: 80% chase
-                      : currentLevel === 1 ? 0.60  // level 2: 60% chase
-                      : 0.40;                       // level 1: 40% chase
-
-    if (Math.random() < chaseChance) {
-      // BFS toward Pac-Man
-      const next = bfsNextStep(g, pacman);
-      g.x = next.x;
-      g.y = next.y;
-    } else {
-      // Random move as fallback
-      const dirs = [
-        { dx: 1, dy: 0 }, { dx: -1, dy: 0 },
-        { dx: 0, dy: 1 }, { dx: 0, dy: -1 }
-      ];
-      const d = dirs[Math.floor(Math.random() * dirs.length)];
-      const nx = g.x + d.dx;
-      const ny = g.y + d.dy;
-      if (map[ny][nx] !== 1) { g.x = nx; g.y = ny; }
-    }
+    const d  = dirs[Math.floor(Math.random() * dirs.length)];
+    const nx = g.x + d.dx;
+    const ny = g.y + d.dy;
+    if (map[ny][nx] !== 1) { g.x = nx; g.y = ny; }
   });
 }
 
@@ -324,16 +244,13 @@ function checkCollision() {
   });
 }
 
-/* NEW — advance level or trigger true win */
 function checkWin() {
-  if (pelletsEatenThisLevel < totalPellets) return;   // not done yet
+  if (pelletsEatenThisLevel < totalPellets) return;
 
   if (currentLevel < LEVEL_CONFIG.length - 1) {
-    // More levels remain — advance
     currentLevel++;
     loadLevel(currentLevel);
   } else {
-    // Finished all 4 levels
     gameState = "gameover";
     const finalEl = document.getElementById("finalMessage");
     if (finalEl) finalEl.textContent = "🏆 YOU BEAT ALL 4 LEVELS!";
@@ -341,41 +258,27 @@ function checkWin() {
   }
 }
 
-/* ----------------------------------------------------------------
-   NEW — loadLevel(n)
-   Resets map, ghosts, pacman position, timer, and pellet count
-   for the given 0-indexed level. Also re-starts the ghost-move
-   interval at the correct speed for that level.
----------------------------------------------------------------- */
+/* ---------------- LOAD LEVEL ---------------- */
 function loadLevel(n) {
   const cfg = LEVEL_CONFIG[n];
   pelletsEatenThisLevel = 0;
 
-  // Reset map
   map = freshMap();
   countPellets();
 
-  // Reset pacman
   pacman = { x: 1, y: 1, dx: 0, dy: 0 };
-
-  // Reset ghosts — deep copy so positions are independent
   ghosts = cfg.ghosts.map(g => ({ ...g }));
-
-  // Reset timer
   timeLeft = cfg.timeLimit;
 
-  // Restart the ghost movement interval at the new speed
   if (ghostMoveInterval !== null) clearInterval(ghostMoveInterval);
   ghostMoveInterval = setInterval(() => {
     if (gameState === "playing") moveGhosts();
   }, cfg.ghostInterval);
 
-  // Brief on-screen flash of the level name (if element exists)
   const lvlEl = document.getElementById("levelLabel");
   if (lvlEl) {
     lvlEl.textContent = cfg.label;
     lvlEl.style.animation = "none";
-    // force reflow then re-animate
     void lvlEl.offsetWidth;
     lvlEl.style.animation = "levelFlash 1.5s ease-out";
   }
@@ -383,16 +286,10 @@ function loadLevel(n) {
   gameState = "playing";
 }
 
-/* ----------------------------------------------------------------
-   NEW — showGameOver
-   Shows game-over screen with the dark-pattern purchase UI.
-   Players can buy lives ($0.99) or time (+30s for $1.99) to
-   continue instead of starting over.
----------------------------------------------------------------- */
+/* ---------------- GAME OVER ---------------- */
 function showGameOver() {
   gameOverScreen.classList.remove("hidden");
 
-  // Inject purchase options into the game-over screen if not already there
   if (!document.getElementById("purchasePanel")) {
     const panel = document.createElement("div");
     panel.id = "purchasePanel";
@@ -428,14 +325,11 @@ function showGameOver() {
   }
 }
 
-/* NEW — dark pattern purchase handlers */
 window.purchaseLives = function () {
-  // In a real game this would hit a payment API.
-  // For now: simulate purchase, restore lives, and continue.
   lives = 3;
   gameOverScreen.classList.add("hidden");
   document.getElementById("purchasePanel")?.remove();
-  loadLevel(currentLevel);   // resume from same level
+  loadLevel(currentLevel);
 };
 
 window.purchaseTime = function () {
@@ -446,85 +340,8 @@ window.purchaseTime = function () {
   loadLevel(currentLevel);
 };
 
-/* ---------------- INPUT ---------------- */
-ddocument.addEventListener("keydown", e => {
-  console.log("key pressed:", e.key, "gameState:", gameState);
-  if (e.key === "Escape") {
-    const adContainer = document.getElementById("adContainer");
-    if (gameState === "playing") {
-      gameState = "paused";
-      pauseScreen.classList.remove("hidden");
-      createAds();
-  } else if (gameState === "paused") {
-      gameState = "playing";
-      pauseScreen.classList.add("hidden");
-      adContainer.classList.add("hidden");
-    }
-    return;
-  }
-  if (gameState !== "playing") return;
-  if (e.key === "ArrowUp")    pacman = { ...pacman, dx: 0,  dy: -1 };
-  if (e.key === "ArrowDown")  pacman = { ...pacman, dx: 0,  dy:  1 };
-  if (e.key === "ArrowLeft")  pacman = { ...pacman, dx: -1, dy:  0 };
-  if (e.key === "ArrowRight") pacman = { ...pacman, dx: 1,  dy:  0 };
-});
-
-/* ---------------- GAME LOOP (pacman + draw — runs every 160ms) ---- */
-function gameLoop() {
-  if (gameState !== "playing") return;
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  movePacman();
-  // NOTE: ghosts are moved by their own interval (loadLevel sets it)
-  checkCollision();
-  checkWin();
-
-  drawMap();
-  drawPacman();
-  drawGhosts();
-
-  updateHUD();
-  updateLeaderboard();
-  updateTimer();
-}
-
-setInterval(gameLoop, 160);
-
-// Countdown timer — 1 tick per second
-setInterval(() => {
-  if (gameState === "playing") timeLeft--;
-}, 1000);
-
-/* ---------------- MENU / CONTROL FUNCTIONS ---------------- */
-function startGame() {
-  gameState = "menu";           // loadLevel will set it to "playing"
-  menuScreen.classList.add("hidden");
-  currentLevel = 0;
-  score = 0;
-  lives = 3;
-  document.getElementById("adContainer").style.display = "";
-  loadLevel(0);                 // NEW — initialize level 1
-}
-
-function restartGame() {
-  location.reload();
-}
-
-window.endGame = function () {
-  gameState = "gameover";
-  showGameOver();
-};
-
-window.resumeGame = function () {
-  gameState = "playing";
-  pauseScreen.classList.add("hidden");
-  document.getElementById("adContainer").classList.add("hidden");
-};
-
+/* ---------------- ADS ---------------- */
 function createAds() {
-  console.log("createAds called!");
-  // Remove any existing ads first
   document.querySelectorAll(".gameAd").forEach(el => el.remove());
 
   const btn = document.createElement("button");
@@ -557,3 +374,74 @@ function createAds() {
 function RemoveAds() {
   document.querySelectorAll(".gameAd").forEach(el => el.remove());
 }
+
+/* ---------------- INPUT ---------------- */
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    if (gameState === "playing") {
+      gameState = "paused";
+      pauseScreen.classList.remove("hidden");
+      createAds();
+    } else if (gameState === "paused") {
+      gameState = "playing";
+      pauseScreen.classList.add("hidden");
+      document.querySelectorAll(".gameAd").forEach(el => el.remove());
+    }
+    return;
+  }
+
+  if (gameState !== "playing") return;
+  if (e.key === "ArrowUp")    pacman = { ...pacman, dx: 0,  dy: -1 };
+  if (e.key === "ArrowDown")  pacman = { ...pacman, dx: 0,  dy:  1 };
+  if (e.key === "ArrowLeft")  pacman = { ...pacman, dx: -1, dy:  0 };
+  if (e.key === "ArrowRight") pacman = { ...pacman, dx: 1,  dy:  0 };
+});
+
+/* ---------------- GAME LOOP ---------------- */
+function gameLoop() {
+  if (gameState !== "playing") return;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  movePacman();
+  checkCollision();
+  checkWin();
+
+  drawMap();
+  drawPacman();
+  drawGhosts();
+
+  updateHUD();
+  updateLeaderboard();
+  updateTimer();
+}
+
+setInterval(gameLoop, 160);
+
+setInterval(() => {
+  if (gameState === "playing") timeLeft--;
+}, 1000);
+
+/* ---------------- MENU FUNCTIONS ---------------- */
+function startGame() {
+  menuScreen.classList.add("hidden");
+  currentLevel = 0;
+  score = 0;
+  lives = 3;
+  loadLevel(0);
+}
+
+function restartGame() {
+  location.reload();
+}
+
+window.endGame = function () {
+  gameState = "gameover";
+  showGameOver();
+};
+
+window.resumeGame = function () {
+  gameState = "playing";
+  pauseScreen.classList.add("hidden");
+  document.querySelectorAll(".gameAd").forEach(el => el.remove());
+};
