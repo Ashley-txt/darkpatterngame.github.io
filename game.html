@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pacman Game</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+ 
+<body>
+  <div class="top-nav">
+    <button id="menuBackBtn" type="button">← Menu</button>
+  </div>
+
+  <h1>Pacman Game</h1>
+ 
+  <div id="hud">
+    <span>Score: <span id="score">0</span></span>
+    <span>Lives: <span id="lives">3</span></span>
+    <span>Time: <span id="timer">1 minute</span></span>
+    <span id="levelLabel">Level 1</span>
+  </div>
+ 
+  <div id="leaderboard">
+    <h3>LIVE LEADERBOARD</h3>
+    <ul id="scoresList"></ul>
+  </div>
+ 
+  <!-- BOOST PANEL -->
+  <div id="boostPanel">
+    <h3>Boosts</h3>
+    <button id="speedBoostBtn" type="button">⚡ Speed Boost <span class="price">$2</span></button>
+    <button id="livesBoostBtn" type="button">❤️ Extra Lives <span class="price">$2</span></button>
+    <button id="timeBoostBtn" type="button">⏱ More Time <span class="price">$2</span></button>
+  </div>
+ 
+  <!-- POPUP -->
+  <div id="popup" class="hidden">
+    <div id="popupBox">
+      <h3 id="popupTitle"></h3>
+      <p id="popupText"></p>
+      <button id="closePopupBtn">Close</button>
+    </div>
+  </div>
+
+  <div id="boostPrompt" class="boost-prompt hidden">
+    <button id="dismissPromptBtn" class="prompt-dismiss" type="button" aria-label="Dismiss prompt">×</button>
+    <p class="overlay-kicker">Recommended Boost</p>
+    <h2 id="promptTitle"></h2>
+    <p id="promptMessage"></p>
+    <p id="promptMeta" class="prompt-meta"></p>
+    <div class="prompt-actions">
+      <button id="acceptPromptBtn" class="arcade-button arcade-button--large" type="button"></button>
+    </div>
+  </div>
+
+  <div id="promptBackdrop" class="prompt-backdrop hidden"></div>
+
+  <div id="levelIntroPopup" class="level-intro hidden">
+    <button id="closeLevelIntroBtn" class="prompt-dismiss" type="button" aria-label="Close level popup">×</button>
+    <h2 id="levelIntroTitle"></h2>
+    <p id="levelIntroFact"></p>
+  </div>
+
+  <div id="gameOverScreen" class="hidden">
+    <div class="game-over-card">
+      <h1>💀 Game Over</h1>
+      <p id="finalMessage"></p>
+      <div class="stat-box">
+        <p>Pellets Collected: <span id="pelletsCollectedStat">0</span></p>
+        <p>Pellets Left: <span id="pelletsRemainingStat">0</span></p>
+      </div>
+      <p id="pressureMessage" class="pressure-message"></p>
+      <div class="game-over-actions">
+        <button id="restartBtn" class="arcade-button" type="button">Restart</button>
+        <button id="purchaseComboBtn" class="arcade-button arcade-button--hot" type="button">
+          Buy 3 Lives + Speed Boost
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="roundSummaryScreen" class="hidden">
+    <div class="game-over-card">
+      <h1>✅ Round Complete</h1>
+      <div class="stat-box">
+        <p>Time to Complete: <span id="roundTimeStat">0s</span></p>
+        <p>Score Earned: <span id="roundScoreStat">0</span></p>
+        <p>Lives Lost: <span id="roundLivesLostStat">0</span></p>
+      </div>
+      <p id="roundRankingMessage" class="pressure-message"></p>
+      <div class="game-over-actions">
+        <button id="nextRoundBtn" class="arcade-button arcade-button--hot" type="button">Next Round</button>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="gameCanvas"></canvas>
+
+  <div class="start-run-row">
+    <button id="startRunBtn" type="button" disabled>▶ Start Level</button>
+  </div>
+ 
+  <script src="script.js"></script>
+</body>
+</html>
