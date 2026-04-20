@@ -253,7 +253,7 @@ canvas {
 }
 
 #menuScreen button,
-#gameOverScreen button, #finalScore button {
+#gameOverScreen button {
   margin-top: 20px;
   padding: 14px 28px;
   background: #000;
@@ -343,7 +343,24 @@ canvas {
   box-shadow: 0 0 24px #FFE000;
   transform: scale(1.08);
 }
-#score{
+#finalScoreText{
   color: #FFE000;
-  font-size: 15px;
+  font-size: 17px;
+}
+#finalScore button{
+  margin-top: 20px;
+  padding: 8px 16px;
+  background: #000;
+  color: #FFE000;
+  border: 3px solid #FFE000;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 0 14px #FFE000;
+  transition: all 0.2s;
+}
+#finalScore button:hover{
+  background: #FFE000;
+  color: #000;
+  box-shadow: 0 0 28px #FFE000;
 }

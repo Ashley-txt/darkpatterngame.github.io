@@ -445,15 +445,11 @@ function showGameOver() {
 
 window.showFinalScore = function () {
   console.log("🔥 showFinalScore CALLED");
-  console.log("Final score screen");
 
   gameOverScreen.classList.add("hidden");
+  document.getElementById("finalScore").classList.remove("hidden");
+  document.getElementById("finalScoreText").innerHTML = `Score: ${finalScore}`;
 
-  document.getElementById("finalScore")?.classList.remove("hidden");
-
-  const scoreEl = document.getElementById("score");
-
-  scoreEl.textContent += finalScore;
 };
 
 /* NEW — dark pattern purchase handlers */
