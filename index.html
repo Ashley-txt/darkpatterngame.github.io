@@ -55,9 +55,14 @@
   <div id="gameOverScreen" class="hidden">
     <h1>💀 Game Over</h1>
     <p id="finalMessage"></p>
-    <button id="restartBtn" onclick="restartGame()">Restart</button>
+    <button id="restartBtn" onclick="showFinalScore()">Give up?</button>
   </div>
   
+  <div id="finalScore" class="hidden">
+    <h1>Final Score</h1>
+    <h3 id="score">Score: </h3>
+    <button id="restart" onclick="restartGame()">Exit</button>
+  </div>
   <canvas id="gameCanvas"></canvas>
  
   <script src="script.js"></script>

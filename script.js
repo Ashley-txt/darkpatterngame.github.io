@@ -110,6 +110,7 @@ let currentLevel = 0;   // NEW — 0-indexed into LEVEL_CONFIG
 let ghosts       = [];
 let ghostMoveInterval = null;   // NEW — handle to the ghost-move timer
 let pelletsEatenThisLevel = 0;
+let finalScore = 0;
 
 const menuScreen    = document.getElementById("menuScreen");
 const pauseScreen   = document.getElementById("pauseScreen");
@@ -357,10 +358,11 @@ function checkWin() {
    for the given 0-indexed level. Also re-starts the ghost-move
    interval at the correct speed for that level.
 ---------------------------------------------------------------- */
-function loadLevel(n) {
+function loadLevel(n, resetTime = true) {
   const cfg = LEVEL_CONFIG[n];
   pelletsEatenThisLevel = 0;
 
+  console.log("loadLevel called | resetTime:", resetTime, "| timeLeft BEFORE:", timeLeft);
   // Reset map
   map = freshMap();
   countPellets();
@@ -371,9 +373,11 @@ function loadLevel(n) {
   // Reset ghosts — deep copy so positions are independent
   ghosts = cfg.ghosts.map(g => ({ ...g }));
 
-  // Reset timer
-  timeLeft = cfg.timeLimit;
 
+  // Reset timer ONLY if needed
+  if (resetTime) {
+    timeLeft = cfg.timeLimit;
+  }
   // Restart the ghost movement interval at the new speed
   if (ghostMoveInterval !== null) clearInterval(ghostMoveInterval);
   ghostMoveInterval = setInterval(() => {
@@ -400,6 +404,7 @@ function loadLevel(n) {
    continue instead of starting over.
 ---------------------------------------------------------------- */
 function showGameOver() {
+  finalScore = score;
   gameOverScreen.classList.remove("hidden");
 
   // Inject purchase options into the game-over screen if not already there
@@ -438,6 +443,19 @@ function showGameOver() {
   }
 }
 
+window.showFinalScore = function () {
+  console.log("🔥 showFinalScore CALLED");
+  console.log("Final score screen");
+
+  gameOverScreen.classList.add("hidden");
+
+  document.getElementById("finalScore")?.classList.remove("hidden");
+
+  const scoreEl = document.getElementById("score");
+
+  scoreEl.textContent += finalScore;
+};
+
 /* NEW — dark pattern purchase handlers */
 window.purchaseLives = function () {
   // In a real game this would hit a payment API.
@@ -445,20 +463,20 @@ window.purchaseLives = function () {
   lives = 3;
   gameOverScreen.classList.add("hidden");
   document.getElementById("purchasePanel")?.remove();
-  loadLevel(currentLevel);   // resume from same level
+  loadLevel(currentLevel, false);   // resume from same level
 };
 
 window.purchaseTime = function () {
-  timeLeft += 30;
   lives = lives > 0 ? lives : 1;
+  timeLeft += 30;
+  loadLevel(currentLevel, false); 
   gameOverScreen.classList.add("hidden");
   document.getElementById("purchasePanel")?.remove();
-  loadLevel(currentLevel);
 };
 
 /* ---------------- INPUT ---------------- */
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape") {
+  if (e.key === "Escape" || e.code === "KeyE") {
     const adContainer = document.getElementById("promoContainer");
     if (gameState === "playing") {
       gameState = "paused";

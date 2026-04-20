@@ -227,7 +227,7 @@ canvas {
 /* SCREENS */
 #menuScreen,
 #pauseScreen,
-#gameOverScreen {
+#gameOverScreen, #finalScore {
   position: fixed;
   top: 0;
   left: 0;
@@ -253,7 +253,7 @@ canvas {
 }
 
 #menuScreen button,
-#gameOverScreen button {
+#gameOverScreen button, #finalScore button {
   margin-top: 20px;
   padding: 14px 28px;
   background: #000;
@@ -342,4 +342,8 @@ canvas {
   color: #000;
   box-shadow: 0 0 24px #FFE000;
   transform: scale(1.08);
+}
+#score{
+  color: #FFE000;
+  font-size: 15px;
 }
