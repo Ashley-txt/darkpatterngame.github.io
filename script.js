@@ -444,8 +444,6 @@ function showGameOver() {
 }
 
 window.showFinalScore = function () {
-  console.log("🔥 showFinalScore CALLED");
-
   gameOverScreen.classList.add("hidden");
   document.getElementById("finalScore").classList.remove("hidden");
   document.getElementById("finalScoreText").innerHTML = `Score: ${finalScore}`;
