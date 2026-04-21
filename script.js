@@ -1,4 +1,12 @@
 const PLAYER_STORAGE_KEY = "points-challenge-player";
+const PLAYER_AVATARS = {
+  spark: "⚡",
+  orbit: "🪐",
+  pixel: "🟧",
+  nova: "🌟",
+  pulse: "💠",
+  echo: "🔷"
+};
 
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
@@ -200,6 +208,8 @@ const elements = {
   speedBoostBtn: document.getElementById("speedBoostBtn"),
   livesBoostBtn: document.getElementById("livesBoostBtn"),
   timeBoostBtn: document.getElementById("timeBoostBtn"),
+  playerIdentityName: document.getElementById("playerIdentityName"),
+  playerIdentityAvatar: document.getElementById("playerIdentityAvatar"),
   menuBackBtn: document.getElementById("menuBackBtn"),
   startRunBtn: document.getElementById("startRunBtn")
 };
@@ -250,6 +260,13 @@ const leaderboard = [
   { name: "Sam", score: 80 },
   { name: playerLabel, score: 0 }
 ];
+
+function hydratePlayerIdentity() {
+  const nickname = player.nickname?.trim() || "Player";
+  const avatar = PLAYER_AVATARS[player.avatarId] || PLAYER_AVATARS.spark;
+  elements.playerIdentityName.textContent = nickname;
+  elements.playerIdentityAvatar.textContent = avatar;
+}
 
 function countPellets() {
   totalPellets = 0;
@@ -777,4 +794,5 @@ setInterval(() => {
   }
 }, 1000);
 
+hydratePlayerIdentity();
 prepareLevel(0);
