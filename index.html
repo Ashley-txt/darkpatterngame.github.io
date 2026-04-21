@@ -2,69 +2,50 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Pacman Game</title>
-  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Points Challenge</title>
+  <link rel="stylesheet" href="onboarding.css" />
 </head>
- 
- <body>
-  <!-- MENU SCREEN -->
-  <div id="menuScreen">
-    <h1>🎮 Pacman Game</h1>
-    <button onclick="startGame()">Start Game</button>
-  </div>
- 
-  <h1>Pacman Game</h1>
- 
-  <div id="hud">
-    <span>Score: <span id="score">0</span></span>
-    <span>Lives: <span id="lives">3</span></span>
-    <span>Time: <span id="timer">120</span>s</span>
-    <span id="levelLabel">Level 1</span>
-  </div>
- 
-  <div id="leaderboard">
-    <h3>LIVE LEADERBOARD</h3>
-    <ul id="scoresList"></ul>
-  </div>
- 
-  <!-- BOOST PANEL -->
-  <div id="boostPanel">
-    <h3>Boosts</h3>
-    <button onclick="openPopup('speed')">⚡ Speed Boost <span class="price">$2</span></button>
-    <button onclick="openPopup('lives')">❤️ Extra Lives <span class="price">$2</span></button>
-  </div>
- 
-  <!-- POPUP -->
-  <div id="popup" class="hidden">
-    <div id="popupBox">
-      <h3 id="popupTitle"></h3>
-      <p id="popupText"></p>
-      <button id="closePopupBtn">Close</button>
-    </div>
-  </div>
- 
-  <!-- PAUSE & GAME OVER SCREENS -->
-  <div id="pauseScreen" class="hidden">
-   <h1>⏸ Paused</h1>
-   <button id="resumeBtn" onclick="resumeGame()">Continue</button>
-   <button id="exitBtn" onclick="restartGame()">Exit</button>
-</div>
- 
-<div id="promoContainer" class="hidden"></div>
-  <div id="gameOverScreen" class="hidden">
-    <h1>💀 Game Over</h1>
-    <p id="finalMessage"></p>
-    <button id="restartBtn" onclick="showFinalScore()">Give up?</button>
-  </div>
-  
-  <div id="finalScore" class="hidden">
-    <h1>Final Score</h1>
-    <h3 id="finalScoreText">Score: </h3>
-    <button id="restart" onclick="restartGame()">Exit</button>
-  </div>
-  <canvas id="gameCanvas"></canvas>
- 
-  <script src="script.js"></script>
+<body>
+  <main class="onboarding-shell">
+    <section class="onboarding-card" aria-labelledby="welcomeTitle">
+      <h1 id="welcomeTitle">The Points Challenge</h1>
+      <p class="intro-copy">
+        Enter the maze, collect as many pellets as you can, and avoid being eaten by the ghosts!
+      </p>
+
+      <form id="onboardingForm" class="onboarding-form">
+        <label class="field">
+          <span>Nickname</span>
+          <input
+            id="nicknameInput"
+            name="nickname"
+            type="text"
+            maxlength="18"
+            placeholder="Enter a nickname"
+            autocomplete="nickname"
+            required
+          />
+        </label>
+
+        <fieldset class="avatar-fieldset">
+          <legend>Choose an avatar</legend>
+          <div id="avatarOptions" class="avatar-grid"></div>
+        </fieldset>
+
+        <div class="profile-preview">
+          <span id="selectedAvatarPreview" class="profile-preview__avatar">⚡</span>
+          <div>
+            <p id="selectedNamePreview" class="profile-preview__name">Player</p>
+            <p class="profile-preview__meta">Ready to start</p>
+          </div>
+        </div>
+
+        <button type="submit" class="start-button">Start Challenge</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="onboarding.js"></script>
 </body>
 </html>

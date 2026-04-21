@@ -1,23 +1,17 @@
-// ============================================================
-// game-levels.js  —  branch: levels-feature
-// Drop this file alongside your existing index.html and replace
-// the <script src="game.js"> tag with <script src="game-levels.js">
-//
-// Changes vs. original:
-//   • 4-level progression (ghost count + speed vary per level)
-//   • loadLevel(n) resets map/ghosts/timer without a full reload
-//   • Win → advances to next level; after level 4 → true win screen
-//   • Dark-pattern purchase flow preserved (lives & time purchases)
-//   • All original functions kept; additions clearly marked NEW
-// ============================================================
+const PLAYER_STORAGE_KEY = "points-challenge-player";
+const PLAYER_AVATARS = {
+  spark: "⚡",
+  orbit: "🪐",
+  pixel: "🟧",
+  nova: "🌟",
+  pulse: "💠",
+  echo: "🔷"
+};
 
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-
 const tileSize = 22;
 
-/* ---------------- MAP TEMPLATE ---------------- */
-// Stored as a template so we can reset it each level
 const MAP_TEMPLATE = [
   [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
   [1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1],
@@ -36,184 +30,338 @@ const MAP_TEMPLATE = [
   [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
 ];
 
-// Deep-copy helper so each level gets a fresh map
+const LEVEL_CONFIG = [
+  { ghosts: [{ x: 17, y: 1 }, { x: 17, y: 13 }], ghostInterval: 420, timeLimit: 60, label: "Level 1", successRate: "88%" },
+  { ghosts: [{ x: 17, y: 1 }, { x: 17, y: 13 }, { x: 1, y: 13 }], ghostInterval: 360, timeLimit: 55, label: "Level 2", successRate: "66%" },
+  { ghosts: [{ x: 17, y: 1 }, { x: 17, y: 13 }, { x: 1, y: 13 }, { x: 9, y: 7 }], ghostInterval: 300, timeLimit: 50, label: "Level 3", successRate: "43%" },
+  { ghosts: [{ x: 17, y: 1 }, { x: 17, y: 13 }, { x: 1, y: 13 }, { x: 9, y: 7 }], ghostInterval: 220, timeLimit: 45, label: "Level 4", successRate: "21%" }
+];
+
+const ROUND_PROMPTS = [
+  [
+    {
+      boost: "speed",
+      buttonId: "speedBoostBtn",
+      title: "Players who activated Speed Boost cleared Level 1 93% of the time",
+      message: "Fast starters usually finish before the ghosts get organized.",
+      meta: "Most top scorers take speed first on easy rounds.",
+      acceptLabel: "Buy Speed Boost"
+    },
+    {
+      boost: "lives",
+      buttonId: "livesBoostBtn",
+      title: "Only 12% of Level 1 failures bought extra lives before starting",
+      message: "Safer players usually protect the round before the first mistake.",
+      meta: "Adding lives now lowers the risk of an early restart.",
+      acceptLabel: "Buy Extra Lives"
+    },
+    {
+      boost: "time",
+      buttonId: "timeBoostBtn",
+      title: "Players who banked more time on Level 1 kept their streaks 81% longer",
+      message: "A little extra time keeps the pace comfortable.",
+      meta: "Timer protection is popular with repeat winners.",
+      acceptLabel: "Buy More Time"
+    }
+  ],
+  [
+    {
+      boost: "speed",
+      buttonId: "speedBoostBtn",
+      title: "Level 2 clears were 89% more common after activating Speed Boost",
+      message: "This round punishes slow openings much faster.",
+      meta: "Competitive players usually speed up here.",
+      acceptLabel: "Buy Speed Boost"
+    },
+    {
+      boost: "lives",
+      buttonId: "livesBoostBtn",
+      title: "67% of Level 2 survivors entered with backup lives",
+      message: "One bad turn is much more expensive now.",
+      meta: "Extra lives are the most common insurance on this level.",
+      acceptLabel: "Buy Extra Lives"
+    },
+    {
+      boost: "time",
+      buttonId: "timeBoostBtn",
+      title: "Level 2 players with extra time reached the last corridor 74% more often",
+      message: "The maze gets tighter, and time disappears faster.",
+      meta: "More time is one of the safest purchases this round.",
+      acceptLabel: "Buy More Time"
+    }
+  ],
+  [
+    {
+      boost: "speed",
+      buttonId: "speedBoostBtn",
+      title: "Top Level 3 runs almost always begin with Speed Boost",
+      message: "Players who hesitate here usually lose control of the board.",
+      meta: "Speed is the most copied purchase on this round.",
+      acceptLabel: "Buy Speed Boost"
+    },
+    {
+      boost: "lives",
+      buttonId: "livesBoostBtn",
+      title: "Level 3 winners were 3x more likely to carry extra lives",
+      message: "Ghost pressure ramps up quickly after the opening.",
+      meta: "The safest runs buy recovery before they need it.",
+      acceptLabel: "Buy Extra Lives"
+    },
+    {
+      boost: "time",
+      buttonId: "timeBoostBtn",
+      title: "Only 18% of failed Level 3 runs started with More Time",
+      message: "Most players who skip time support run out before the last pellets.",
+      meta: "Extending the timer helps stabilize difficult routes.",
+      acceptLabel: "Buy More Time"
+    }
+  ],
+  [
+    {
+      boost: "speed",
+      buttonId: "speedBoostBtn",
+      title: "Nearly every Level 4 clear started with Speed Boost",
+      message: "This round is tuned to punish anyone who opens slowly.",
+      meta: "The best players treat speed as mandatory here.",
+      acceptLabel: "Buy Speed Boost"
+    },
+    {
+      boost: "lives",
+      buttonId: "livesBoostBtn",
+      title: "Level 4 survivors almost never begin without extra lives",
+      message: "One collision usually decides the whole run at this point.",
+      meta: "Backup lives are the most common safety purchase on the final round.",
+      acceptLabel: "Buy Extra Lives"
+    },
+    {
+      boost: "time",
+      buttonId: "timeBoostBtn",
+      title: "Final-round players who purchased More Time lasted 82% longer",
+      message: "The clock is the real threat on Level 4.",
+      meta: "Time support keeps last-minute collapses from ending the run.",
+      acceptLabel: "Buy More Time"
+    }
+  ]
+];
+
+const RUNTIME_PROMPTS = {
+  speed: {
+    boost: "speed",
+    buttonId: "speedBoostBtn",
+    title: "You're going too slow!",
+    message: "Get a speed boost before it's too late!",
+    meta: "Top players usually accelerate around this point in the round.",
+    acceptLabel: "Buy Speed Boost"
+  },
+  lives: {
+    boost: "lives",
+    buttonId: "livesBoostBtn",
+    title: "Only 1 life left",
+    message: "Don't let one mistake erase this round.",
+    meta: "Most surviving players add lives before the next collision.",
+    acceptLabel: "Buy Extra Lives"
+  },
+  time: {
+    boost: "time",
+    buttonId: "timeBoostBtn",
+    title: "Time's almost up",
+    message: "Only 30 seconds left. Buy more time before this round slips away.",
+    meta: "Most players who survive the late timer add time right here.",
+    acceptLabel: "Buy More Time"
+  }
+};
+
+const elements = {
+  score: document.getElementById("score"),
+  lives: document.getElementById("lives"),
+  timer: document.getElementById("timer"),
+  levelLabel: document.getElementById("levelLabel"),
+  scoresList: document.getElementById("scoresList"),
+  popup: document.getElementById("popup"),
+  popupTitle: document.getElementById("popupTitle"),
+  popupText: document.getElementById("popupText"),
+  closePopupBtn: document.getElementById("closePopupBtn"),
+  promptBackdrop: document.getElementById("promptBackdrop"),
+  boostPrompt: document.getElementById("boostPrompt"),
+  promptTitle: document.getElementById("promptTitle"),
+  promptMessage: document.getElementById("promptMessage"),
+  promptMeta: document.getElementById("promptMeta"),
+  acceptPromptBtn: document.getElementById("acceptPromptBtn"),
+  dismissPromptBtn: document.getElementById("dismissPromptBtn"),
+  levelIntroPopup: document.getElementById("levelIntroPopup"),
+  levelIntroTitle: document.getElementById("levelIntroTitle"),
+  levelIntroFact: document.getElementById("levelIntroFact"),
+  closeLevelIntroBtn: document.getElementById("closeLevelIntroBtn"),
+  gameOverScreen: document.getElementById("gameOverScreen"),
+  roundSummaryScreen: document.getElementById("roundSummaryScreen"),
+  finalSummaryScreen: document.getElementById("finalSummaryScreen"),
+  roundTimeStat: document.getElementById("roundTimeStat"),
+  roundScoreStat: document.getElementById("roundScoreStat"),
+  roundLivesLostStat: document.getElementById("roundLivesLostStat"),
+  roundRankingMessage: document.getElementById("roundRankingMessage"),
+  finalMessage: document.getElementById("finalMessage"),
+  finalSummaryStatus: document.getElementById("finalSummaryStatus"),
+  finalSummaryScore: document.getElementById("finalSummaryScore"),
+  finalSummaryLevel: document.getElementById("finalSummaryLevel"),
+  finalSummaryLives: document.getElementById("finalSummaryLives"),
+  finalSummaryPellets: document.getElementById("finalSummaryPellets"),
+  finalSummaryMessage: document.getElementById("finalSummaryMessage"),
+  pelletsCollectedStat: document.getElementById("pelletsCollectedStat"),
+  pelletsRemainingStat: document.getElementById("pelletsRemainingStat"),
+  pressureMessage: document.getElementById("pressureMessage"),
+  viewFinalSummaryBtn: document.getElementById("viewFinalSummaryBtn"),
+  closeFinalSummaryBtn: document.getElementById("closeFinalSummaryBtn"),
+  finalSummaryRestartBtn: document.getElementById("finalSummaryRestartBtn"),
+  restartBtn: document.getElementById("restartBtn"),
+  purchaseComboBtn: document.getElementById("purchaseComboBtn"),
+  nextRoundBtn: document.getElementById("nextRoundBtn"),
+  speedBoostBtn: document.getElementById("speedBoostBtn"),
+  livesBoostBtn: document.getElementById("livesBoostBtn"),
+  timeBoostBtn: document.getElementById("timeBoostBtn"),
+  playerIdentityName: document.getElementById("playerIdentityName"),
+  playerIdentityAvatar: document.getElementById("playerIdentityAvatar"),
+  menuBackBtn: document.getElementById("menuBackBtn"),
+  startRunBtn: document.getElementById("startRunBtn")
+};
+
 function freshMap() {
-  return MAP_TEMPLATE.map(row => [...row]);
+  return MAP_TEMPLATE.map((row) => [...row]);
 }
+
+function loadStoredPlayer() {
+  try {
+    return JSON.parse(localStorage.getItem(PLAYER_STORAGE_KEY) || "{}");
+  } catch (error) {
+    return {};
+  }
+}
+
+const player = loadStoredPlayer();
+const playerLabel = player.nickname ? `${player.nickname.toUpperCase()}:` : "LAST PLACE YOU:";
 
 let map = freshMap();
+canvas.width = map[0].length * tileSize;
+canvas.height = map.length * tileSize;
 
-canvas.width  = map[0].length * tileSize;
-canvas.height = map.length    * tileSize;
+let gameState = "ready";
+let score = 0;
+let lives = 3;
+let timeLeft = LEVEL_CONFIG[0].timeLimit;
+let currentLevel = 0;
+let ghosts = [];
+let pacman = { x: 1, y: 1, dx: 0, dy: 0 };
+let totalPellets = 0;
+let pelletsEatenThisLevel = 0;
+let ghostMoveInterval = null;
+let popupHideTimeout = null;
+let activePromptIndex = -1;
+let activeRuntimePrompt = null;
+let speedBoostActive = false;
+let levelIntroOpen = false;
+let runtimePromptShown = { speed: false, lives: false, time: false };
+let pendingNextLevel = null;
+let roundStartScore = 0;
+let roundStartLives = 3;
+let roundStartTime = LEVEL_CONFIG[0].timeLimit;
+let finalSummaryContext = {
+  status: "",
+  message: ""
+};
 
-/* ----------------------------------------------------------------
-   NEW — LEVEL CONFIG
-   Each entry describes one level:
-     ghosts   : starting positions (determines ghost count)
-     ghostInterval : ms between ghost moves (lower = faster)
-     timeLimit: seconds on the clock
----------------------------------------------------------------- */
-const LEVEL_CONFIG = [
-  {
-    // Level 1 — 2 ghosts, normal speed
-    ghosts: [
-      { x: 17, y: 1  },
-      { x: 17, y: 13 },
-    ],
-    ghostInterval: 400,
-    timeLimit: 120,
-    label: "Level 1"
-  },
-  {
-    // Level 2 — 3 ghosts, normal speed
-    ghosts: [
-      { x: 17, y: 1  },
-      { x: 17, y: 13 },
-      { x: 1,  y: 13 },
-    ],
-    ghostInterval: 400,
-    timeLimit: 100,
-    label: "Level 2"
-  },
-  {
-    // Level 3 — 4 ghosts, normal speed
-    ghosts: [
-      { x: 17, y: 1  },
-      { x: 17, y: 13 },
-      { x: 1,  y: 13 },
-      { x: 9,  y: 7  },
-    ],
-    ghostInterval: 400,
-    timeLimit: 90,
-    label: "Level 3"
-  },
-  {
-    // Level 4 — 4 ghosts, FASTER (ghostInterval halved)
-    ghosts: [
-      { x: 17, y: 1  },
-      { x: 17, y: 13 },
-      { x: 1,  y: 13 },
-      { x: 9,  y: 7  },
-    ],
-    ghostInterval: 200,   // twice as fast as normal
-    timeLimit: 90,
-    label: "Level 4 — Speed Run!"
-  },
+const leaderboard = [
+  { name: "Alex", score: 120 },
+  { name: "Jordan", score: 95 },
+  { name: "Sam", score: 80 },
+  { name: playerLabel, score: 0 }
 ];
 
-/* ---------------- STATE ---------------- */
-let gameState    = "menu";
-let score        = 0;
-let lives        = 3;
-let timeLeft     = LEVEL_CONFIG[0].timeLimit;
-let currentLevel = 0;   // NEW — 0-indexed into LEVEL_CONFIG
-let ghosts       = [];
-let ghostMoveInterval = null;   // NEW — handle to the ghost-move timer
-let pelletsEatenThisLevel = 0;
-let finalScore = 0;
+function hydratePlayerIdentity() {
+  const nickname = player.nickname?.trim() || "Player";
+  const avatar = PLAYER_AVATARS[player.avatarId] || PLAYER_AVATARS.spark;
+  elements.playerIdentityName.textContent = nickname;
+  elements.playerIdentityAvatar.textContent = avatar;
+}
 
-const menuScreen    = document.getElementById("menuScreen");
-const pauseScreen   = document.getElementById("pauseScreen");
-const gameOverScreen = document.getElementById("gameOverScreen");
-
-/* ---------------- PLAYER ---------------- */
-let pacman = { x: 1, y: 1, dx: 0, dy: 0 };
-
-/* ---------------- PELLET COUNT (recalculated per level) ---------------- */
-let totalPellets = 0;
 function countPellets() {
   totalPellets = 0;
-  map.forEach(r => r.forEach(c => { if (c === 0) totalPellets++; }));
-}
-countPellets();
-
-/* ---------------- LEADERBOARD ---------------- */
-let leaderboard = [
-  { name: "Alex",   score: 120 },
-  { name: "Jordan", score: 95  },
-  { name: "Sam",    score: 80  },
-  { name: "LAST PLACE YOU:",    score: 0   }
-];
-
-/* ---------------- POPUP ---------------- */
-const popup   = document.getElementById("popup");
-const title   = document.getElementById("popupTitle");
-const text    = document.getElementById("popupText");
-const closeBtn = document.getElementById("closePopupBtn");
-
-function openPopup(type) {
-  popup.classList.remove("hidden");
-  if (type === "speed") {
-    title.textContent = "⚡ Speed Boost";
-    text.textContent  = "Increases movement speed in-game.";
-  }
-  if (type === "lives") {
-    title.textContent = "❤️ Extra Lives";
-    text.textContent  = "Adds extra chances when hit by ghosts.";
-  }
-}
-function closePopup() { popup.classList.add("hidden"); }
-closeBtn.addEventListener("click", closePopup);
-
-/* ---------------- TIMER ---------------- */
-function updateTimer() {
-  const el = document.getElementById("timer");
-  el.textContent  = timeLeft;
-  el.style.color  = "white";
-  if (timeLeft <= 30) el.style.color = "orange";
-  if (timeLeft <= 10) el.style.color = "red";
-
-  if (timeLeft <= 0) {
-    gameState = "gameover";
-    showGameOver();
-  }
-}
-
-/* ---------------- LEADERBOARD ---------------- */
-function updateLeaderboard() {
-  const list = document.getElementById("scoresList");
-  leaderboard = leaderboard.map(p => ({
-    ...p,
-    score: p.name === "LAST PLACE YOU:"
-      ? score
-      : p.score + Math.floor(Math.random() * 3)
+  map.forEach((row) => row.forEach((cell) => {
+    if (cell === 0) totalPellets += 1;
   }));
-  leaderboard.sort((a, b) => b.score - a.score);
-  list.innerHTML = "";
-  const rankSymbols = ["①", "②", "③", "④"];
-  leaderboard.forEach((p, i) => {
-    const li = document.createElement("li");
-    li.setAttribute("data-rank", rankSymbols[i] || `${i+1}.`);
-    if (p.name === "LAST PLACE YOU:") {
-      li.classList.add("you-row");
+}
+
+function openPopup(title, message, autoHideMs = 0) {
+  elements.popupTitle.textContent = title;
+  elements.popupText.textContent = message;
+  elements.popup.classList.remove("hidden");
+
+  if (popupHideTimeout) {
+    clearTimeout(popupHideTimeout);
+    popupHideTimeout = null;
+  }
+
+  if (autoHideMs > 0) {
+    popupHideTimeout = setTimeout(() => {
+      closePopup();
+      popupHideTimeout = null;
+    }, autoHideMs);
+  }
+}
+
+function closePopup() {
+  elements.popup.classList.add("hidden");
+}
+
+function updateHUD() {
+  elements.score.textContent = score;
+  elements.lives.textContent = lives;
+  elements.levelLabel.textContent = LEVEL_CONFIG[currentLevel].label;
+  elements.timer.textContent = gameState === "ready"
+    ? currentLevel === 0
+      ? "1 minute"
+      : `${LEVEL_CONFIG[currentLevel].timeLimit} seconds`
+    : `${timeLeft} seconds`;
+
+  elements.timer.style.color = "white";
+  if (gameState === "playing" && timeLeft <= 30) elements.timer.style.color = "orange";
+  if (gameState === "playing" && timeLeft <= 10) elements.timer.style.color = "red";
+}
+
+function updateLeaderboard() {
+  leaderboard.forEach((entry) => {
+    if (entry.name === playerLabel) {
+      entry.score = score;
+    } else {
+      entry.score += Math.floor(Math.random() * 3);
     }
+  });
+
+  leaderboard.sort((a, b) => b.score - a.score);
+  elements.scoresList.innerHTML = "";
+  const rankSymbols = ["①", "②", "③", "④"];
+
+  leaderboard.forEach((entry, index) => {
+    const li = document.createElement("li");
+    li.setAttribute("data-rank", rankSymbols[index] || `${index + 1}.`);
+    if (entry.name === playerLabel) li.classList.add("you-row");
+
     const nameSpan = document.createElement("span");
-    nameSpan.textContent = p.name;
+    nameSpan.textContent = entry.name;
     nameSpan.style.flex = "1";
     nameSpan.style.textAlign = "left";
     nameSpan.style.marginRight = "6px";
+
     const scoreSpan = document.createElement("span");
-    scoreSpan.textContent = String(p.score).padStart(4, "0");
+    scoreSpan.textContent = String(entry.score).padStart(4, "0");
+
     li.appendChild(nameSpan);
     li.appendChild(scoreSpan);
-    list.appendChild(li);
+    elements.scoresList.appendChild(li);
   });
 }
 
-/* ---------------- HUD ---------------- */
-function updateHUD() {
-  document.getElementById("score").textContent = score;
-  document.getElementById("lives").textContent = lives;
-
-  // NEW — show current level label if element exists
-  const lvlEl = document.getElementById("levelLabel");
-  if (lvlEl) lvlEl.textContent = LEVEL_CONFIG[currentLevel].label;
-}
-
-/* ---------------- DRAW ---------------- */
 function drawMap() {
-  for (let y = 0; y < map.length; y++) {
-    for (let x = 0; x < map[y].length; x++) {
+  for (let y = 0; y < map.length; y += 1) {
+    for (let x = 0; x < map[y].length; x += 1) {
       if (map[y][x] === 1) {
         ctx.fillStyle = "blue";
         ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
@@ -236,52 +384,41 @@ function drawPacman() {
 
 function drawGhosts() {
   ctx.fillStyle = "red";
-  ghosts.forEach(g => {
-    ctx.fillRect(g.x * tileSize + 4, g.y * tileSize + 4, 14, 14);
+  ghosts.forEach((ghost) => {
+    ctx.fillRect(ghost.x * tileSize + 4, ghost.y * tileSize + 4, 14, 14);
   });
 }
 
-/* ---------------- GAME LOGIC ---------------- */
-function movePacman() {
-  let nx = pacman.x + pacman.dx;
-  let ny = pacman.y + pacman.dy;
-  if (map[ny][nx] !== 1) {
-    pacman.x = nx;
-    pacman.y = ny;
-    if (map[ny][nx] === 0) {
-      score++;
-      pelletsEatenThisLevel++;
-      map[ny][nx] = 2;
-    }
-  }
+function renderFrame() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawMap();
+  drawPacman();
+  drawGhosts();
+  updateHUD();
+  updateLeaderboard();
 }
 
 function bfsNextStep(ghost, target) {
-  // Returns the first step a ghost should take toward target using BFS
   const queue = [{ x: ghost.x, y: ghost.y, path: [] }];
-  const visited = new Set();
-  visited.add(`${ghost.x},${ghost.y}`);
+  const visited = new Set([`${ghost.x},${ghost.y}`]);
 
   while (queue.length > 0) {
     const current = queue.shift();
-
-    const dirs = [
+    const directions = [
       { dx: 1, dy: 0 }, { dx: -1, dy: 0 },
       { dx: 0, dy: 1 }, { dx: 0, dy: -1 }
     ];
 
-    for (const d of dirs) {
-      const nx = current.x + d.dx;
-      const ny = current.y + d.dy;
+    for (const direction of directions) {
+      const nx = current.x + direction.dx;
+      const ny = current.y + direction.dy;
       const key = `${nx},${ny}`;
 
-      if (map[ny]?.[nx] === undefined) continue;  // out of bounds
-      if (map[ny][nx] === 1) continue;             // wall
-      if (visited.has(key)) continue;              // already seen
+      if (map[ny]?.[nx] === undefined) continue;
+      if (map[ny][nx] === 1) continue;
+      if (visited.has(key)) continue;
 
       const newPath = [...current.path, { x: nx, y: ny }];
-
-      // Found Pac-Man — return the first step of the path
       if (nx === target.x && ny === target.y) {
         return newPath[0] || { x: ghost.x, y: ghost.y };
       }
@@ -291,291 +428,411 @@ function bfsNextStep(ghost, target) {
     }
   }
 
-  // No path found — stay put
   return { x: ghost.x, y: ghost.y };
 }
 
+function restartGhostInterval() {
+  if (ghostMoveInterval) clearInterval(ghostMoveInterval);
+  const baseInterval = LEVEL_CONFIG[currentLevel].ghostInterval;
+  const effectiveInterval = speedBoostActive ? Math.max(140, baseInterval - 120) : baseInterval;
+  ghostMoveInterval = setInterval(() => {
+    if (gameState === "playing") moveGhosts();
+  }, effectiveInterval);
+}
+
 function moveGhosts() {
-  ghosts.forEach(g => {
-    // Level 4 ghosts chase perfectly — earlier levels have some randomness
-    const chaseChance = currentLevel === 3 ? 1.0   // level 4: always chase
-                      : currentLevel === 2 ? 0.80  // level 3: 80% chase
-                      : currentLevel === 1 ? 0.60  // level 2: 60% chase
-                      : 0.40;                       // level 1: 40% chase
+  ghosts.forEach((ghost) => {
+    const chaseChance = currentLevel === 3 ? 1.0
+      : currentLevel === 2 ? 0.8
+      : currentLevel === 1 ? 0.6
+      : 0.4;
 
     if (Math.random() < chaseChance) {
-      // BFS toward Pac-Man
-      const next = bfsNextStep(g, pacman);
-      g.x = next.x;
-      g.y = next.y;
-    } else {
-      // Random move as fallback
-      const dirs = [
-        { dx: 1, dy: 0 }, { dx: -1, dy: 0 },
-        { dx: 0, dy: 1 }, { dx: 0, dy: -1 }
-      ];
-      const d = dirs[Math.floor(Math.random() * dirs.length)];
-      const nx = g.x + d.dx;
-      const ny = g.y + d.dy;
-      if (map[ny][nx] !== 1) { g.x = nx; g.y = ny; }
+      const next = bfsNextStep(ghost, pacman);
+      ghost.x = next.x;
+      ghost.y = next.y;
+      return;
+    }
+
+    const directions = [
+      { dx: 1, dy: 0 }, { dx: -1, dy: 0 },
+      { dx: 0, dy: 1 }, { dx: 0, dy: -1 }
+    ];
+    const direction = directions[Math.floor(Math.random() * directions.length)];
+    const nx = ghost.x + direction.dx;
+    const ny = ghost.y + direction.dy;
+    if (map[ny][nx] !== 1) {
+      ghost.x = nx;
+      ghost.y = ny;
     }
   });
 }
 
+function applyBoost(type) {
+  if (type === "speed") {
+    speedBoostActive = true;
+    if (gameState === "playing") restartGhostInterval();
+    openPopup("⚡ Speed Boost", "You took the speed boost. Faster openings usually produce higher scores.", 2200);
+  }
+
+  if (type === "lives") {
+    lives += 3;
+    updateHUD();
+    openPopup("❤️ Extra Lives", "You added 3 lives. Safer runs usually last longer.", 2200);
+  }
+
+  if (type === "time") {
+    timeLeft += 15;
+    updateHUD();
+    openPopup("⏱ More Time", "You added 15 seconds. More time keeps the round from collapsing late.", 2200);
+  }
+}
+
+function positionPromptForButton(button) {
+  const rect = button.getBoundingClientRect();
+  elements.boostPrompt.style.top = `${rect.top + window.scrollY - 8}px`;
+  elements.boostPrompt.style.left = `${rect.right + window.scrollX + 18}px`;
+}
+
+function clearBoostHighlights() {
+  elements.speedBoostBtn.classList.remove("boost-highlight");
+  elements.livesBoostBtn.classList.remove("boost-highlight");
+  elements.timeBoostBtn.classList.remove("boost-highlight");
+}
+
+function hideBoostPrompt() {
+  elements.boostPrompt.classList.add("hidden");
+  elements.promptBackdrop.classList.add("hidden");
+  clearBoostHighlights();
+  activePromptIndex = -1;
+  activeRuntimePrompt = null;
+}
+
+function hideFinalSummary() {
+  elements.finalSummaryScreen.classList.add("hidden");
+}
+
+function showFinalSummary() {
+  elements.finalSummaryStatus.textContent = finalSummaryContext.status;
+  elements.finalSummaryScore.textContent = score;
+  elements.finalSummaryLevel.textContent = LEVEL_CONFIG[currentLevel].label;
+  elements.finalSummaryLives.textContent = lives;
+  elements.finalSummaryPellets.textContent = pelletsEatenThisLevel;
+  elements.finalSummaryMessage.textContent = finalSummaryContext.message;
+  elements.finalSummaryScreen.classList.remove("hidden");
+}
+
+function showRoundPrompt(index) {
+  const prompt = ROUND_PROMPTS[currentLevel][index];
+
+  if (!prompt) {
+    hideBoostPrompt();
+    elements.startRunBtn.disabled = false;
+    elements.startRunBtn.textContent = `▶ Start ${LEVEL_CONFIG[currentLevel].label}`;
+    activePromptIndex = -1;
+    return;
+  }
+
+  activePromptIndex = index;
+  const button = document.getElementById(prompt.buttonId);
+  clearBoostHighlights();
+  button.classList.add("boost-highlight");
+  elements.promptTitle.textContent = prompt.title;
+  elements.promptMessage.textContent = prompt.message;
+  elements.promptMeta.textContent = prompt.meta;
+  elements.acceptPromptBtn.textContent = prompt.acceptLabel;
+  positionPromptForButton(button);
+  elements.promptBackdrop.classList.remove("hidden");
+  elements.boostPrompt.classList.remove("hidden");
+}
+
+function showRuntimePrompt(promptKey) {
+  const prompt = RUNTIME_PROMPTS[promptKey];
+  if (!prompt || gameState !== "playing" || activeRuntimePrompt || activePromptIndex !== -1) return;
+
+  activeRuntimePrompt = promptKey;
+  gameState = "prompt";
+
+  const button = document.getElementById(prompt.buttonId);
+  clearBoostHighlights();
+  button.classList.add("boost-highlight");
+  elements.promptTitle.textContent = prompt.title;
+  elements.promptMessage.textContent = prompt.message;
+  elements.promptMeta.textContent = prompt.meta;
+  elements.acceptPromptBtn.textContent = prompt.acceptLabel;
+  positionPromptForButton(button);
+  elements.promptBackdrop.classList.remove("hidden");
+  elements.boostPrompt.classList.remove("hidden");
+}
+
+function closeLevelIntro() {
+  levelIntroOpen = false;
+  elements.levelIntroPopup.classList.add("hidden");
+  showRoundPrompt(0);
+}
+
+function showLevelIntro() {
+  const level = LEVEL_CONFIG[currentLevel];
+  levelIntroOpen = true;
+  elements.levelIntroTitle.textContent = level.label;
+  elements.levelIntroFact.textContent = `${level.successRate} of players successfully clear this level.`;
+  elements.levelIntroPopup.classList.remove("hidden");
+}
+
+function prepareLevel(levelIndex) {
+  currentLevel = levelIndex;
+  map = freshMap();
+  countPellets();
+  pacman = { x: 1, y: 1, dx: 0, dy: 0 };
+  ghosts = LEVEL_CONFIG[currentLevel].ghosts.map((ghost) => ({ ...ghost }));
+  timeLeft = LEVEL_CONFIG[currentLevel].timeLimit;
+  pelletsEatenThisLevel = 0;
+  speedBoostActive = false;
+  runtimePromptShown = { speed: false, lives: false, time: false };
+  gameState = "ready";
+  activePromptIndex = -1;
+  activeRuntimePrompt = null;
+
+  if (ghostMoveInterval) {
+    clearInterval(ghostMoveInterval);
+    ghostMoveInterval = null;
+  }
+
+  hideBoostPrompt();
+  elements.gameOverScreen.classList.add("hidden");
+  elements.roundSummaryScreen.classList.add("hidden");
+  elements.finalSummaryScreen.classList.add("hidden");
+  elements.startRunBtn.disabled = true;
+  elements.startRunBtn.textContent = "Review Round Setup";
+  renderFrame();
+  showLevelIntro();
+}
+
+function startLevel() {
+  if (gameState !== "ready" || activePromptIndex !== -1 || levelIntroOpen) return;
+  gameState = "playing";
+  roundStartScore = score;
+  roundStartLives = lives;
+  roundStartTime = LEVEL_CONFIG[currentLevel].timeLimit;
+  elements.startRunBtn.disabled = true;
+  elements.startRunBtn.textContent = "▶ Running";
+  updateHUD();
+  restartGhostInterval();
+}
+
+function movePacman() {
+  const nx = pacman.x + pacman.dx;
+  const ny = pacman.y + pacman.dy;
+
+  if (map[ny]?.[nx] !== 1) {
+    pacman.x = nx;
+    pacman.y = ny;
+    if (map[ny][nx] === 0) {
+      score += 1;
+      pelletsEatenThisLevel += 1;
+      map[ny][nx] = 2;
+    }
+  }
+}
+
+function showGameOver(reasonText) {
+  gameState = "gameover";
+  hideBoostPrompt();
+  elements.levelIntroPopup.classList.add("hidden");
+  elements.roundSummaryScreen.classList.add("hidden");
+  elements.startRunBtn.disabled = true;
+  elements.startRunBtn.textContent = "▶ Start Level";
+
+  if (ghostMoveInterval) {
+    clearInterval(ghostMoveInterval);
+    ghostMoveInterval = null;
+  }
+
+  const pelletsRemaining = totalPellets - pelletsEatenThisLevel;
+  elements.finalMessage.textContent = reasonText;
+  elements.pelletsCollectedStat.textContent = pelletsEatenThisLevel;
+  elements.pelletsRemainingStat.textContent = pelletsRemaining;
+  elements.pressureMessage.textContent = `You only have ${pelletsRemaining} pellets left for this round! Don't restart!`;
+  finalSummaryContext = {
+    status: reasonText,
+    message: pelletsRemaining > 0
+      ? `You left ${pelletsRemaining} pellets behind. Most players who got this far were pushed toward one more purchase.`
+      : "You cleared the board, but the game still wants one more decision from you."
+  };
+  elements.gameOverScreen.classList.remove("hidden");
+}
+
+function getRoundRankingMessage(timeTaken) {
+  if (timeTaken <= 18) {
+    return "You ranked with the top 15% of players in time to complete. Next round, most leaders still buy speed boost.";
+  }
+
+  if (timeTaken <= 30) {
+    return "You ranked around the middle 40% of players in time to complete. Speed boost could move you up next round.";
+  }
+
+  return "You ranked amongst the bottom 10% of players in time to complete. Next round, get a speed boost!";
+}
+
+function showRoundSummary(nextLevelIndex) {
+  gameState = "summary";
+  pendingNextLevel = nextLevelIndex;
+  hideBoostPrompt();
+  elements.levelIntroPopup.classList.add("hidden");
+  elements.startRunBtn.disabled = true;
+  elements.startRunBtn.textContent = "▶ Start Level";
+
+  if (ghostMoveInterval) {
+    clearInterval(ghostMoveInterval);
+    ghostMoveInterval = null;
+  }
+
+  const timeTaken = roundStartTime - timeLeft;
+  const scoreEarned = score - roundStartScore;
+  const livesLost = roundStartLives - lives;
+
+  elements.roundTimeStat.textContent = `${Math.max(0, timeTaken)}s`;
+  elements.roundScoreStat.textContent = scoreEarned;
+  elements.roundLivesLostStat.textContent = Math.max(0, livesLost);
+  elements.roundRankingMessage.textContent = getRoundRankingMessage(timeTaken);
+  elements.roundSummaryScreen.classList.remove("hidden");
+}
+
 function checkCollision() {
-  ghosts.forEach(g => {
-    if (g.x === pacman.x && g.y === pacman.y) {
-      lives--;
-      pacman.x = 1; pacman.y = 1;
+  ghosts.forEach((ghost) => {
+    if (ghost.x === pacman.x && ghost.y === pacman.y) {
+      lives -= 1;
+      pacman = { x: 1, y: 1, dx: 0, dy: 0 };
+      updateHUD();
       if (lives <= 0) {
-        gameState = "gameover";
-        showGameOver();
+        showGameOver("You were caught before finishing the round.");
+      } else if (lives === 1 && !runtimePromptShown.lives) {
+        runtimePromptShown.lives = true;
+        showRuntimePrompt("lives");
       }
     }
   });
 }
 
-/* NEW — advance level or trigger true win */
 function checkWin() {
-  if (pelletsEatenThisLevel < totalPellets) return;   // not done yet
+  if (pelletsEatenThisLevel < totalPellets) return;
 
   if (currentLevel < LEVEL_CONFIG.length - 1) {
-    // More levels remain — advance
-    currentLevel++;
-    loadLevel(currentLevel);
-  } else {
-    // Finished all 4 levels
-    gameState = "gameover";
-    const finalEl = document.getElementById("finalMessage");
-    if (finalEl) finalEl.textContent = "🏆 YOU BEAT ALL 4 LEVELS!";
-    showGameOver();
-  }
-}
-
-/* ----------------------------------------------------------------
-   NEW — loadLevel(n)
-   Resets map, ghosts, pacman position, timer, and pellet count
-   for the given 0-indexed level. Also re-starts the ghost-move
-   interval at the correct speed for that level.
----------------------------------------------------------------- */
-function loadLevel(n, resetTime = true) {
-  const cfg = LEVEL_CONFIG[n];
-  pelletsEatenThisLevel = 0;
-
-  console.log("loadLevel called | resetTime:", resetTime, "| timeLeft BEFORE:", timeLeft);
-  // Reset map
-  map = freshMap();
-  countPellets();
-
-  // Reset pacman
-  pacman = { x: 1, y: 1, dx: 0, dy: 0 };
-
-  // Reset ghosts — deep copy so positions are independent
-  ghosts = cfg.ghosts.map(g => ({ ...g }));
-
-
-  // Reset timer ONLY if needed
-  if (resetTime) {
-    timeLeft = cfg.timeLimit;
-  }
-  // Restart the ghost movement interval at the new speed
-  if (ghostMoveInterval !== null) clearInterval(ghostMoveInterval);
-  ghostMoveInterval = setInterval(() => {
-    if (gameState === "playing") moveGhosts();
-  }, cfg.ghostInterval);
-
-  // Brief on-screen flash of the level name (if element exists)
-  const lvlEl = document.getElementById("levelLabel");
-  if (lvlEl) {
-    lvlEl.textContent = cfg.label;
-    lvlEl.style.animation = "none";
-    // force reflow then re-animate
-    void lvlEl.offsetWidth;
-    lvlEl.style.animation = "levelFlash 1.5s ease-out";
-  }
-
-  gameState = "playing";
-}
-
-/* ----------------------------------------------------------------
-   NEW — showGameOver
-   Shows game-over screen with the dark-pattern purchase UI.
-   Players can buy lives ($0.99) or time (+30s for $1.99) to
-   continue instead of starting over.
----------------------------------------------------------------- */
-function showGameOver() {
-  finalScore = score;
-  gameOverScreen.classList.remove("hidden");
-
-  // Inject purchase options into the game-over screen if not already there
-  if (!document.getElementById("purchasePanel")) {
-    const panel = document.createElement("div");
-    panel.id = "purchasePanel";
-    panel.style.cssText = `
-      margin-top: 12px;
-      background: #1a1a2e;
-      border: 2px solid #e94560;
-      border-radius: 8px;
-      padding: 14px;
-      text-align: center;
-      color: white;
-      font-family: monospace;
-    `;
-    panel.innerHTML = `
-      <p style="color:#ffd700;font-size:1.1em;margin:0 0 10px">
-        Don't lose your progress on <strong>${LEVEL_CONFIG[currentLevel].label}</strong>!
-      </p>
-      <button onclick="purchaseLives()" style="
-        background:#e94560;color:white;border:none;border-radius:6px;
-        padding:10px 18px;margin:4px;cursor:pointer;font-size:0.95em;">
-        ❤️ Buy 3 Lives — $0.99
-      </button>
-      <button onclick="purchaseTime()" style="
-        background:#f5a623;color:black;border:none;border-radius:6px;
-        padding:10px 18px;margin:4px;cursor:pointer;font-size:0.95em;">
-        ⏱ Buy +30s — $1.99
-      </button>
-      <p style="font-size:0.75em;color:#aaa;margin:8px 0 0">
-        Or <a href="#" onclick="restartGame()" style="color:#e94560">start over from Level 1</a>
-      </p>
-    `;
-    gameOverScreen.appendChild(panel);
-  }
-}
-
-window.showFinalScore = function () {
-  gameOverScreen.classList.add("hidden");
-  document.getElementById("finalScore").classList.remove("hidden");
-  document.getElementById("finalScoreText").innerHTML = `Score: ${finalScore}`;
-
-};
-
-/* NEW — dark pattern purchase handlers */
-window.purchaseLives = function () {
-  // In a real game this would hit a payment API.
-  // For now: simulate purchase, restore lives, and continue.
-  lives = 3;
-  gameOverScreen.classList.add("hidden");
-  document.getElementById("purchasePanel")?.remove();
-  loadLevel(currentLevel, false);   // resume from same level
-};
-
-window.purchaseTime = function () {
-  lives = lives > 0 ? lives : 1;
-  timeLeft += 30;
-  loadLevel(currentLevel, false); 
-  gameOverScreen.classList.add("hidden");
-  document.getElementById("purchasePanel")?.remove();
-};
-
-/* ---------------- INPUT ---------------- */
-document.addEventListener("keydown", e => {
-  if (e.key === "Escape" || e.code === "KeyE") {
-    const adContainer = document.getElementById("promoContainer");
-    if (gameState === "playing") {
-      gameState = "paused";
-      pauseScreen.classList.remove("hidden");
-      createAds();
-  } else if (gameState === "paused") {
-      gameState = "playing";
-      pauseScreen.classList.add("hidden");
-      adContainer.classList.add("hidden");
-      document.querySelectorAll(".promoItem").forEach(el => el.remove());
-    }
+    showRoundSummary(currentLevel + 1);
     return;
   }
-  if (gameState !== "playing") return;
-  if (e.key === "ArrowUp")    pacman = { ...pacman, dx: 0,  dy: -1 };
-  if (e.key === "ArrowDown")  pacman = { ...pacman, dx: 0,  dy:  1 };
-  if (e.key === "ArrowLeft")  pacman = { ...pacman, dx: -1, dy:  0 };
-  if (e.key === "ArrowRight") pacman = { ...pacman, dx: 1,  dy:  0 };
-});
 
-/* ---------------- GAME LOOP (pacman + draw — runs every 160ms) ---- */
+  showGameOver("🏆 You beat all 4 levels.");
+}
+
 function gameLoop() {
   if (gameState !== "playing") return;
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
   movePacman();
-  // NOTE: ghosts are moved by their own interval (loadLevel sets it)
   checkCollision();
   checkWin();
-
-  drawMap();
-  drawPacman();
-  drawGhosts();
-
-  updateHUD();
-  updateLeaderboard();
-  updateTimer();
+  renderFrame();
 }
 
-setInterval(gameLoop, 160);
-
-// Countdown timer — 1 tick per second
-setInterval(() => {
-  if (gameState === "playing") timeLeft--;
-}, 1000);
-
-/* ---------------- MENU / CONTROL FUNCTIONS ---------------- */
-function startGame() {
-  gameState = "menu";           // loadLevel will set it to "playing"
-  menuScreen.classList.add("hidden");
-  currentLevel = 0;
+function restartRun() {
+  hideFinalSummary();
   score = 0;
   lives = 3;
-  document.getElementById("promoContainer").style.display = "";
-  loadLevel(0);                 // NEW — initialize level 1
+  prepareLevel(0);
 }
 
-function restartGame() {
-  location.reload();
+function purchaseCombo() {
+  lives = 3;
+  speedBoostActive = true;
+  hideFinalSummary();
+  elements.gameOverScreen.classList.add("hidden");
+  prepareLevel(currentLevel);
 }
 
-window.endGame = function () {
-  gameState = "gameover";
-  showGameOver();
-};
+elements.closePopupBtn.addEventListener("click", closePopup);
+elements.closeLevelIntroBtn.addEventListener("click", closeLevelIntro);
+elements.dismissPromptBtn.addEventListener("click", () => {
+  if (activeRuntimePrompt) {
+    hideBoostPrompt();
+    gameState = "playing";
+    return;
+  }
 
-window.resumeGame = function () {
-  gameState = "playing";
-  pauseScreen.classList.add("hidden");
-  document.getElementById("promoContainer").classList.add("hidden");
-  document.querySelectorAll(".promoItem").forEach(el => el.remove());
-};
+  if (activePromptIndex === -1) return;
+  showRoundPrompt(activePromptIndex + 1);
+});
+elements.acceptPromptBtn.addEventListener("click", () => {
+  if (activeRuntimePrompt) {
+    const prompt = RUNTIME_PROMPTS[activeRuntimePrompt];
+    applyBoost(prompt.boost);
+    hideBoostPrompt();
+    gameState = "playing";
+    return;
+  }
 
-function createAds() {
-  // Remove any existing ads first
-  document.querySelectorAll(".promoItem").forEach(el => el.remove());
+  if (activePromptIndex === -1) return;
+  const prompt = ROUND_PROMPTS[currentLevel][activePromptIndex];
+  applyBoost(prompt.boost);
+  showRoundPrompt(activePromptIndex + 1);
+});
+elements.viewFinalSummaryBtn.addEventListener("click", showFinalSummary);
+elements.closeFinalSummaryBtn.addEventListener("click", hideFinalSummary);
+elements.finalSummaryRestartBtn.addEventListener("click", restartRun);
+elements.restartBtn.addEventListener("click", restartRun);
+elements.purchaseComboBtn.addEventListener("click", purchaseCombo);
+elements.nextRoundBtn.addEventListener("click", () => {
+  if (pendingNextLevel !== null) {
+    prepareLevel(pendingNextLevel);
+    pendingNextLevel = null;
+  }
+});
+elements.speedBoostBtn.addEventListener("click", () => applyBoost("speed"));
+elements.livesBoostBtn.addEventListener("click", () => applyBoost("lives"));
+elements.timeBoostBtn.addEventListener("click", () => applyBoost("time"));
+elements.menuBackBtn.addEventListener("click", () => {
+  window.location.href = "index.html";
+});
+elements.startRunBtn.addEventListener("click", startLevel);
 
-  const btn = document.createElement("button");
-  btn.id = "hidePromoBtn";
-  btn.className = "promoItem";
-  btn.onclick = RemoveAds;
-  btn.style.cssText = "position:fixed; top:10px; left:50%; transform:translateX(-50%); z-index:999999; background:linear-gradient(45deg,#f1c40f,#f39c12); color:black; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:bold;";
-  btn.textContent = "Remove Ads";
-  document.body.appendChild(btn);
+window.addEventListener("resize", () => {
+  if (activeRuntimePrompt) {
+    const prompt = RUNTIME_PROMPTS[activeRuntimePrompt];
+    positionPromptForButton(document.getElementById(prompt.buttonId));
+  } else if (activePromptIndex >= 0) {
+    const prompt = ROUND_PROMPTS[currentLevel][activePromptIndex];
+    positionPromptForButton(document.getElementById(prompt.buttonId));
+  }
+});
 
-  const ad1 = new Image();
-  ad1.className = "promoItem";
-  ad1.src = "promo-left.jpg";
-  ad1.style.cssText = "position:fixed; left:0; top:0; width:160px; height:100vh; z-index:99999;";
-  document.body.appendChild(ad1);
+document.addEventListener("keydown", (event) => {
+  if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
+    event.preventDefault();
+  }
 
-  const ad2 = new Image();
-  ad2.className = "promoItem";
-  ad2.src = "promo-right.jpg";
-  ad2.style.cssText = "position:fixed; right:0; top:0; width:160px; height:100vh; z-index:99999;";
-  document.body.appendChild(ad2);
+  if (gameState !== "playing") return;
+  if (event.key === "ArrowUp") pacman = { ...pacman, dx: 0, dy: -1 };
+  if (event.key === "ArrowDown") pacman = { ...pacman, dx: 0, dy: 1 };
+  if (event.key === "ArrowLeft") pacman = { ...pacman, dx: -1, dy: 0 };
+  if (event.key === "ArrowRight") pacman = { ...pacman, dx: 1, dy: 0 };
+});
 
-  const ad3 = new Image();
-  ad3.className = "promoItem";
-  ad3.src = "promo-bottom.jpg";
-  ad3.style.cssText = "position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:60%; max-width:600px; height:120px; z-index:99999;";
-  document.body.appendChild(ad3);
-}
+setInterval(gameLoop, 160);
+setInterval(() => {
+  if (gameState === "playing") {
+    timeLeft -= 1;
+    updateHUD();
+    if (timeLeft <= 30 && !runtimePromptShown.time) {
+      runtimePromptShown.time = true;
+      showRuntimePrompt("time");
+    }
+    if (timeLeft <= 45 && !runtimePromptShown.speed) {
+      runtimePromptShown.speed = true;
+      showRuntimePrompt("speed");
+    }
+    if (timeLeft <= 0) {
+      showGameOver("Time ran out before you cleared the pellets.");
+    }
+  }
+}, 1000);
 
-function RemoveAds() {
-  document.querySelectorAll(".promoItem").forEach(el => el.remove());
-}
+hydratePlayerIdentity();
+prepareLevel(0);
