@@ -77,6 +77,7 @@
       </div>
       <p id="pressureMessage" class="pressure-message"></p>
       <div class="game-over-actions">
+        <button id="viewFinalSummaryBtn" class="arcade-button" type="button">Give Up :(</button>
         <button id="restartBtn" class="arcade-button" type="button">Restart</button>
         <button id="purchaseComboBtn" class="arcade-button arcade-button--hot" type="button">
           Buy 3 Lives + Speed Boost
@@ -96,6 +97,24 @@
       <p id="roundRankingMessage" class="pressure-message"></p>
       <div class="game-over-actions">
         <button id="nextRoundBtn" class="arcade-button arcade-button--hot" type="button">Next Round</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="finalSummaryScreen" class="hidden">
+    <div class="game-over-card">
+      <h1>🏁 Final Summary</h1>
+      <p id="finalSummaryStatus"></p>
+      <div class="stat-box">
+        <p>Total Score: <span id="finalSummaryScore">0</span></p>
+        <p>Highest Level Reached: <span id="finalSummaryLevel">Level 1</span></p>
+        <p>Lives Remaining: <span id="finalSummaryLives">0</span></p>
+        <p>Pellets This Round: <span id="finalSummaryPellets">0</span></p>
+      </div>
+      <p id="finalSummaryMessage" class="pressure-message"></p>
+      <div class="game-over-actions">
+        <button id="closeFinalSummaryBtn" class="arcade-button" type="button">Back</button>
+        <button id="finalSummaryRestartBtn" class="arcade-button arcade-button--hot" type="button">Restart Run</button>
       </div>
     </div>
   </div>

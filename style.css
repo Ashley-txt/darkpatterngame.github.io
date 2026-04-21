@@ -78,7 +78,7 @@ body {
 h1 {
   margin: 10px;
   color: #FFE000;
-  text-shadow: 0 0 10px #FFE000, 2px 2px 0 #FF7B00;
+  text-shadow: 0 0 4px rgba(255, 224, 0, 0.5), 1px 1px 0 #FF7B00;
   font-family: 'Press Start 2P', monospace;
   font-size: 1.4rem;
   letter-spacing: 2px;
@@ -92,7 +92,7 @@ h1 {
   margin-bottom: 10px;
   color: #FFE000;
   font-family: 'Press Start 2P', monospace;
-  text-shadow: 0 0 6px #FFE000;
+  text-shadow: 0 0 2px rgba(255, 224, 0, 0.28);
 }
 
 canvas {
@@ -159,7 +159,7 @@ canvas {
   font-size: 11px;
   margin: 0 0 12px 0;
   letter-spacing: 3px;
-  text-shadow: 0 0 8px #FFE000, 2px 2px 0 #FF7B00;
+  text-shadow: 0 0 3px rgba(255, 224, 0, 0.4), 1px 1px 0 #FF7B00;
   text-transform: uppercase;
 }
 
@@ -228,7 +228,7 @@ canvas {
   font-size: 10px;
   margin: 0 0 10px 0;
   letter-spacing: 2px;
-  text-shadow: 0 0 8px #FFE000;
+  text-shadow: 0 0 2px rgba(255, 224, 0, 0.35);
   text-transform: uppercase;
 }
 
@@ -352,7 +352,8 @@ canvas {
 
 /* SCREENS */
 #gameOverScreen,
-#roundSummaryScreen {
+#roundSummaryScreen,
+#finalSummaryScreen {
   position: fixed;
   top: 0;
   left: 0;
@@ -371,9 +372,10 @@ canvas {
 }
 
 #gameOverScreen h1,
-#roundSummaryScreen h1 {
+#roundSummaryScreen h1,
+#finalSummaryScreen h1 {
   color: #FFE000;
-  text-shadow: 0 0 16px #FFE000, 3px 3px 0 #FF7B00;
+  text-shadow: 0 0 4px rgba(255, 224, 0, 0.5), 1px 1px 0 #FF7B00;
 }
 
 .game-over-card {
@@ -444,7 +446,7 @@ canvas {
 .level-intro h2 {
   margin: 0 0 16px;
   color: #FFE000;
-  text-shadow: 0 0 12px #FFE000, 3px 3px 0 #FF7B00;
+  text-shadow: 0 0 4px rgba(255, 224, 0, 0.5), 1px 1px 0 #FF7B00;
   font-size: clamp(1.2rem, 4vw, 2rem);
 }
 
@@ -537,6 +539,17 @@ canvas {
 }
 
 #roundSummaryScreen .stat-box p {
+  justify-content: center;
+  gap: 14px;
+}
+
+#finalSummaryScreen .game-over-card,
+#finalSummaryScreen .stat-box,
+#finalSummaryScreen .pressure-message {
+  text-align: center;
+}
+
+#finalSummaryScreen .stat-box p {
   justify-content: center;
   gap: 14px;
 }

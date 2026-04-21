@@ -194,14 +194,24 @@ const elements = {
   closeLevelIntroBtn: document.getElementById("closeLevelIntroBtn"),
   gameOverScreen: document.getElementById("gameOverScreen"),
   roundSummaryScreen: document.getElementById("roundSummaryScreen"),
+  finalSummaryScreen: document.getElementById("finalSummaryScreen"),
   roundTimeStat: document.getElementById("roundTimeStat"),
   roundScoreStat: document.getElementById("roundScoreStat"),
   roundLivesLostStat: document.getElementById("roundLivesLostStat"),
   roundRankingMessage: document.getElementById("roundRankingMessage"),
   finalMessage: document.getElementById("finalMessage"),
+  finalSummaryStatus: document.getElementById("finalSummaryStatus"),
+  finalSummaryScore: document.getElementById("finalSummaryScore"),
+  finalSummaryLevel: document.getElementById("finalSummaryLevel"),
+  finalSummaryLives: document.getElementById("finalSummaryLives"),
+  finalSummaryPellets: document.getElementById("finalSummaryPellets"),
+  finalSummaryMessage: document.getElementById("finalSummaryMessage"),
   pelletsCollectedStat: document.getElementById("pelletsCollectedStat"),
   pelletsRemainingStat: document.getElementById("pelletsRemainingStat"),
   pressureMessage: document.getElementById("pressureMessage"),
+  viewFinalSummaryBtn: document.getElementById("viewFinalSummaryBtn"),
+  closeFinalSummaryBtn: document.getElementById("closeFinalSummaryBtn"),
+  finalSummaryRestartBtn: document.getElementById("finalSummaryRestartBtn"),
   restartBtn: document.getElementById("restartBtn"),
   purchaseComboBtn: document.getElementById("purchaseComboBtn"),
   nextRoundBtn: document.getElementById("nextRoundBtn"),
@@ -253,6 +263,10 @@ let pendingNextLevel = null;
 let roundStartScore = 0;
 let roundStartLives = 3;
 let roundStartTime = LEVEL_CONFIG[0].timeLimit;
+let finalSummaryContext = {
+  status: "",
+  message: ""
+};
 
 const leaderboard = [
   { name: "Alex", score: 120 },
@@ -494,6 +508,20 @@ function hideBoostPrompt() {
   activeRuntimePrompt = null;
 }
 
+function hideFinalSummary() {
+  elements.finalSummaryScreen.classList.add("hidden");
+}
+
+function showFinalSummary() {
+  elements.finalSummaryStatus.textContent = finalSummaryContext.status;
+  elements.finalSummaryScore.textContent = score;
+  elements.finalSummaryLevel.textContent = LEVEL_CONFIG[currentLevel].label;
+  elements.finalSummaryLives.textContent = lives;
+  elements.finalSummaryPellets.textContent = pelletsEatenThisLevel;
+  elements.finalSummaryMessage.textContent = finalSummaryContext.message;
+  elements.finalSummaryScreen.classList.remove("hidden");
+}
+
 function showRoundPrompt(index) {
   const prompt = ROUND_PROMPTS[currentLevel][index];
 
@@ -573,6 +601,7 @@ function prepareLevel(levelIndex) {
   hideBoostPrompt();
   elements.gameOverScreen.classList.add("hidden");
   elements.roundSummaryScreen.classList.add("hidden");
+  elements.finalSummaryScreen.classList.add("hidden");
   elements.startRunBtn.disabled = true;
   elements.startRunBtn.textContent = "Review Round Setup";
   renderFrame();
@@ -624,6 +653,12 @@ function showGameOver(reasonText) {
   elements.pelletsCollectedStat.textContent = pelletsEatenThisLevel;
   elements.pelletsRemainingStat.textContent = pelletsRemaining;
   elements.pressureMessage.textContent = `You only have ${pelletsRemaining} pellets left for this round! Don't restart!`;
+  finalSummaryContext = {
+    status: reasonText,
+    message: pelletsRemaining > 0
+      ? `You left ${pelletsRemaining} pellets behind. Most players who got this far were pushed toward one more purchase.`
+      : "You cleared the board, but the game still wants one more decision from you."
+  };
   elements.gameOverScreen.classList.remove("hidden");
 }
 
@@ -699,6 +734,7 @@ function gameLoop() {
 }
 
 function restartRun() {
+  hideFinalSummary();
   score = 0;
   lives = 3;
   prepareLevel(0);
@@ -707,6 +743,7 @@ function restartRun() {
 function purchaseCombo() {
   lives = 3;
   speedBoostActive = true;
+  hideFinalSummary();
   elements.gameOverScreen.classList.add("hidden");
   prepareLevel(currentLevel);
 }
@@ -737,6 +774,9 @@ elements.acceptPromptBtn.addEventListener("click", () => {
   applyBoost(prompt.boost);
   showRoundPrompt(activePromptIndex + 1);
 });
+elements.viewFinalSummaryBtn.addEventListener("click", showFinalSummary);
+elements.closeFinalSummaryBtn.addEventListener("click", hideFinalSummary);
+elements.finalSummaryRestartBtn.addEventListener("click", restartRun);
 elements.restartBtn.addEventListener("click", restartRun);
 elements.purchaseComboBtn.addEventListener("click", purchaseCombo);
 elements.nextRoundBtn.addEventListener("click", () => {
